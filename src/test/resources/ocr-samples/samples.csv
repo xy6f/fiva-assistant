@@ -1,0 +1,11 @@
+# OCR 评测集清单（等真实样本就绪后填写）
+# 将发票图片放入本目录（src/test/resources/ocr-samples/），并在此文件中每行登记一条：
+#
+# 格式: 图片文件名,期望发票号码,期望开票日期(yyyy-MM-dd),期望金额,期望税额,期望价税合计
+# 示例:
+# invoice-001.jpg,253611000012345678,2025-06-30,1000.00,130.00,1130.00
+#
+# 说明:
+# - 日期为空可留空；金额字段留空则跳过该项比对
+# - 运行评测: 取消 OcrEvaluationTest 上的 @Disabled 后执行
+#   .\mvnw.cmd test -Dtest=OcrEvaluationTest
