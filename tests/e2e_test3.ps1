@@ -3,7 +3,7 @@
 #         AccountResolver auto-create
 $ErrorActionPreference = 'Continue'
 Add-Type -AssemblyName System.Net.Http
-$env:MYSQL_PWD = 'changeme'
+$env:MYSQL_PWD = if ($env:DB_PASSWORD) { $env:DB_PASSWORD } else { 'changeme' }
 
 $BASE = 'http://localhost:8080/api'
 $script:PASS = 0; $script:FAILN = 0; $script:FAILED = @()
