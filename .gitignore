@@ -37,6 +37,10 @@ build/
 frontend/node_modules/
 frontend/dist/
 
+# === Sensitive Config ===
+application-dev.properties
+application-local.properties
+
 # === Runtime / Uploads ===
 uploads/
 *.log
