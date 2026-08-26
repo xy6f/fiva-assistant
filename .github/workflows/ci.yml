@@ -21,11 +21,11 @@ jobs:
           cache: maven
 
       - name: Compile
-        run: ./mvnw -B compile -DskipTests
+        run: chmod +x mvnw && ./mvnw -B compile -DskipTests
 
       - name: Unit tests
         # 仅纯单元测试（不依赖数据库）；OcrEvaluationTest 默认 @Disabled
-        run: ./mvnw -B test "-Dtest=OcrResultParserTest"
+        run: chmod +x mvnw && ./mvnw -B test "-Dtest=OcrResultParserTest"
 
   frontend:
     name: Frontend (build)
