@@ -75,7 +75,7 @@
         </el-table-column>
         <el-table-column label="实发" width="100" align="right">
           <template #default="{row}">
-            <span style="font-weight:bold;color:#409eff">{{ calcNet(row) }}</span>
+            <span style="font-weight:bold;color:#1a6b68">{{ calcNet(row) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="70" align="center">

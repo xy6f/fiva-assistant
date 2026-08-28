@@ -21,7 +21,7 @@
         </el-table-column>
         <el-table-column label="净值" width="120" align="right">
           <template #default="{row}">
-            <span style="color:#409eff;font-weight:bold">¥{{ formatMoney(getNetValue(row)) }}</span>
+            <span style="color:#1a6b68;font-weight:bold">¥{{ formatMoney(getNetValue(row)) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="月折旧额" width="110" align="right">

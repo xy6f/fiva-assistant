@@ -102,7 +102,7 @@
           </el-table-column>
           <el-table-column label="借方金额" width="120" align="right">
             <template #default="{row}">
-              <span v-if="row.debitAmount > 0" style="color:#409eff">¥{{ row.debitAmount?.toFixed(2) }}</span>
+              <span v-if="row.debitAmount > 0" style="color:#1a6b68">¥{{ row.debitAmount?.toFixed(2) }}</span>
             </template>
           </el-table-column>
           <el-table-column label="贷方金额" width="120" align="right">

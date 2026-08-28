@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 style="margin-bottom:20px">发票上传与OCR识别</h2>
+    <h2 style="margin-bottom:20px">发票上传与识别</h2>
     <el-card>
       <el-upload
         drag
@@ -47,7 +47,7 @@
       </el-form>
 
       <el-collapse style="margin-top:10px">
-        <el-collapse-item title="AI 原始识别文本" name="1">
+        <el-collapse-item title="识别原文" name="1">
           <pre style="white-space:pre-wrap;max-height:200px;overflow:auto">{{ result.rawText }}</pre>
         </el-collapse-item>
       </el-collapse>

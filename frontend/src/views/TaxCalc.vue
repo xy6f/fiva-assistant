@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 style="margin-bottom:20px">税务智能测算</h2>
+    <h2 style="margin-bottom:20px">税务测算</h2>
 
     <el-row :gutter="20">
       <!-- Input Form -->
@@ -28,7 +28,7 @@
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="handleCalc" :loading="calculating" style="width:100%">
-                智能测算
+                开始测算
               </el-button>
             </el-form-item>
           </el-form>
@@ -68,7 +68,7 @@
         <el-card v-if="suggestion || suggestLoading">
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <span>AI 税务筹划建议</span>
+              <span>税务筹划建议</span>
               <div>
                 <el-button size="small" @click="getSuggestion" :loading="suggestLoading">刷新建议</el-button>
                 <el-button size="small" type="warning" @click="goAnalysis" :loading="suggestLoading" style="margin-left:8px">深度分析</el-button>
@@ -81,7 +81,7 @@
         </el-card>
 
         <el-card v-if="!result && !suggestLoading">
-          <el-empty description="请输入企业信息后点击「智能测算」" />
+          <el-empty description="请输入企业信息后点击「开始测算」" />
         </el-card>
       </el-col>
     </el-row>
@@ -124,7 +124,7 @@ const renderedSuggestion = computed(() => {
     // 加粗 **text**
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     // 编号分段：1.**xxx** 或 1. xxx
-    .replace(/(\d+)\.\s*/g, '<br><strong style="color:#409eff">$1.</strong> ')
+    .replace(/(\d+)\.\s*/g, '<br><strong style="color:#1a6b68">$1.</strong> ')
   return html
 })
 

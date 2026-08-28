@@ -4,7 +4,7 @@
       <el-button @click="$router.back()" style="margin-right:12px">
         <el-icon><ArrowLeft /></el-icon> 返回
       </el-button>
-      <h2 style="margin:0">AI 税务深度分析报告</h2>
+      <h2 style="margin:0">税务分析报告</h2>
     </div>
 
     <el-card v-if="!analysis && !analyzing" style="text-align:center;padding:60px 20px">
@@ -39,7 +39,7 @@
       <!-- 加载中 -->
       <div v-if="analyzing && !analysis" style="text-align:center;padding:40px">
         <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-        <p style="margin-top:12px;color:#999">AI 正在生成深度分析报告，请稍候...</p>
+        <p style="margin-top:12px;color:#999">正在生成分析报告，请稍候...</p>
       </div>
 
       <!-- 流式光标 -->
@@ -74,7 +74,7 @@ function formatMoney(val) {
 const renderedAnalysis = computed(() => {
   if (!analysis.value) return ''
   return analysis.value
-    .replace(/^## (.+)$/gm, '<h3 style="margin:20px 0 10px;color:#1f2d3d;border-bottom:2px solid #409eff;padding-bottom:6px">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h3 style="margin:20px 0 10px;color:#1c2434;border-bottom:2px solid #1a6b68;padding-bottom:6px">$1</h3>')
     .replace(/^### (.+)$/gm, '<h4 style="margin:16px 0 8px;color:#303133">$1</h4>')
     .replace(/^- (.+)$/gm, '<div style="padding-left:20px;margin:4px 0">• $1</div>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')

@@ -26,7 +26,7 @@
         <el-table-column prop="summary" label="摘要" min-width="160" />
         <el-table-column label="借方" width="120" align="right">
           <template #default="{row}">
-            <span v-if="row.debitAmount > 0" style="color:#409eff">¥{{ fmt(row.debitAmount) }}</span>
+            <span v-if="row.debitAmount > 0" style="color:#1a6b68">¥{{ fmt(row.debitAmount) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="贷方" width="120" align="right">

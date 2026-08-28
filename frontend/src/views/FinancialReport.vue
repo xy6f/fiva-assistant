@@ -23,7 +23,7 @@
             title="勾稽关系校验通过：资产 = 负债 + 所有者权益" />
           <el-row :gutter="20">
             <el-col :span="12">
-              <h3 style="margin-bottom:12px;color:#409eff">资产</h3>
+              <h3 style="margin-bottom:12px;color:#1a6b68">资产</h3>
               <el-table :data="balanceData.assets || []" border size="small">
                 <el-table-column prop="code" label="编码" width="80" />
                 <el-table-column prop="name" label="项目" />
@@ -90,7 +90,7 @@
               <div style="margin-top:4px">
                 <div>现金流入: ¥{{ fmt(cashflowData.operating?.inflow) }}</div>
                 <div>现金流出: ¥{{ fmt(cashflowData.operating?.outflow) }}</div>
-                <div style="font-weight:bold;color:#409eff">经营活动净现金流: ¥{{ fmt(cashflowData.operating?.netCashFlow) }}</div>
+                <div style="font-weight:bold;color:#1a6b68">经营活动净现金流: ¥{{ fmt(cashflowData.operating?.netCashFlow) }}</div>
               </div>
             </el-descriptions-item>
             <el-descriptions-item label="二、投资活动产生的现金流量">
@@ -108,7 +108,7 @@
               </div>
             </el-descriptions-item>
             <el-descriptions-item label="四、现金及现金等价物净增加额">
-              <span style="font-size:18px;font-weight:bold" :style="{color: cashflowData.totalNetCashFlow >= 0 ? '#409eff' : '#f56c6c'}">
+              <span style="font-size:18px;font-weight:bold" :style="{color: cashflowData.totalNetCashFlow >= 0 ? '#1a6b68' : '#f56c6c'}">
                 ¥{{ fmt(cashflowData.totalNetCashFlow) }}
               </span>
             </el-descriptions-item>

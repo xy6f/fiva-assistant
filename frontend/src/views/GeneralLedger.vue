@@ -17,7 +17,7 @@
         </el-table-column>
         <el-table-column label="本期借方" width="130" align="right">
           <template #default="{row}">
-            <span style="color:#409eff">¥{{ fmt(row.periodDebit) }}</span>
+            <span style="color:#1a6b68">¥{{ fmt(row.periodDebit) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="本期贷方" width="130" align="right">

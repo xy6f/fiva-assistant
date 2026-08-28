@@ -74,7 +74,7 @@
         <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
           <el-button type="primary" plain size="small" @click="addEntry">+ 添加分录</el-button>
           <div style="font-size:14px">
-            <span>借方合计: <b style="color:#409eff">{{ formatMoney(totalDebit) }}</b></span>
+            <span>借方合计: <b style="color:#1a6b68">{{ formatMoney(totalDebit) }}</b></span>
             <span style="margin-left:20px">贷方合计: <b style="color:#e6a23c">{{ formatMoney(totalCredit) }}</b></span>
             <el-tag :type="totalDebit === totalCredit && totalDebit > 0 ? 'success' : 'danger'" style="margin-left:20px">
               {{ totalDebit === totalCredit && totalDebit > 0 ? '借贷平衡' : '借贷不平衡' }}

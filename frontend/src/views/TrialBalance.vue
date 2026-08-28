@@ -21,7 +21,7 @@
         </el-table-column>
         <el-table-column label="本期借方" width="110" align="right">
           <template #default="{row}">
-            <span style="color:#409eff">¥{{ fmt(row.periodDebit) }}</span>
+            <span style="color:#1a6b68">¥{{ fmt(row.periodDebit) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="本期贷方" width="110" align="right">
@@ -47,7 +47,7 @@
           <el-col :span="4" style="font-weight:bold;text-align:center">合计</el-col>
           <el-col :span="5" style="text-align:right">¥{{ fmt(data.totals.openingDebit) }}</el-col>
           <el-col :span="5" style="text-align:right">¥{{ fmt(data.totals.openingCredit) }}</el-col>
-          <el-col :span="5" style="text-align:right;color:#409eff;font-weight:bold">¥{{ fmt(data.totals.periodDebit) }}</el-col>
+          <el-col :span="5" style="text-align:right;color:#1a6b68;font-weight:bold">¥{{ fmt(data.totals.periodDebit) }}</el-col>
           <el-col :span="5" style="text-align:right;color:#e6a23c;font-weight:bold">¥{{ fmt(data.totals.periodCredit) }}</el-col>
         </el-row>
         <el-row :gutter="20" style="margin-top:8px">

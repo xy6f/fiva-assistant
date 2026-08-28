@@ -16,7 +16,7 @@
       <div v-else>
         <!-- 收入科目 -->
         <div style="margin-bottom:20px">
-          <h3 style="margin-bottom:12px;color:#409eff">收入科目（将转入未分配利润贷方）</h3>
+          <h3 style="margin-bottom:12px;color:#1a6b68">收入科目（将转入未分配利润贷方）</h3>
           <el-table :data="status.revenueItems || []" border size="small">
             <el-table-column prop="code" label="编码" width="100" />
             <el-table-column prop="name" label="科目名称" width="200" />
@@ -24,7 +24,7 @@
               <template #default="{row}">¥{{ fmt(row.creditAmount) }}</template>
             </el-table-column>
           </el-table>
-          <div style="text-align:right;font-weight:bold;margin-top:8px;color:#409eff">
+          <div style="text-align:right;font-weight:bold;margin-top:8px;color:#1a6b68">
             收入合计: ¥{{ fmt(status.totalRevenue) }}
           </div>
         </div>
