@@ -1,9 +1,16 @@
 <template>
   <div class="register-container">
     <div class="register-card">
+      <div class="register-brand">
+        <div class="brand-mark">F</div>
+        <div>
+          <div class="brand-name">FIVA</div>
+          <div class="brand-sub">企业财税系统</div>
+        </div>
+      </div>
       <div class="register-header">
-        <h2>注册新账号</h2>
-        <p>一账号对应一个独立公司</p>
+        <h2>注册账号</h2>
+        <p>一个账号对应一家独立核算主体</p>
       </div>
       <el-form :model="form" :rules="rules" ref="formRef" @submit.prevent="handleRegister">
         <el-form-item prop="username">
@@ -34,7 +41,7 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleRegister" :loading="loading" size="large" style="width:100%">
-            注 册
+            注册
           </el-button>
         </el-form-item>
       </el-form>
@@ -48,11 +55,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { register, getCaptcha } from '../api/auth'
 
-const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const captchaQuestion = ref('')
@@ -140,38 +145,61 @@ async function handleRegister() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 32px;
+  background: var(--fiva-bg);
 }
 .register-card {
   width: 420px;
-  padding: 40px;
+  padding: 36px 32px;
   background: #fff;
+  border: 1px solid var(--fiva-line);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  box-shadow: 0 24px 70px rgba(21, 32, 51, .12);
 }
+.register-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.brand-mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1a6b68, #209477);
+  box-shadow: 0 10px 22px rgba(26,107,104,.28);
+}
+.brand-name { color: var(--fiva-text); font-size: 16px; font-weight: 650; letter-spacing: .04em; }
+.brand-sub { color: var(--fiva-muted); font-size: 12px; }
 .register-header {
-  text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 .register-header h2 {
-  color: #303133;
+  color: var(--fiva-text);
   margin: 0 0 8px;
-  font-size: 28px;
+  font-size: 22px;
+  font-weight: 600;
 }
 .register-header p {
-  color: #909399;
+  color: var(--fiva-muted);
   margin: 0;
+  font-size: 14px;
 }
 .register-footer {
   text-align: center;
   margin-top: 16px;
-  color: #909399;
+  color: var(--fiva-muted);
   font-size: 14px;
 }
 .register-footer .link {
-  color: #409eff;
+  color: var(--fiva-primary);
   text-decoration: none;
   margin-left: 4px;
+  font-weight: 600;
 }
 .register-footer .link:hover {
   text-decoration: underline;
@@ -181,16 +209,20 @@ async function handleRegister() {
   height: 40px;
   line-height: 40px;
   text-align: center;
-  background: #f0f2f5;
-  border-radius: 4px;
+  background: var(--fiva-primary-soft);
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  color: #409eff;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fiva-primary-strong);
   user-select: none;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--fiva-line);
 }
 .captcha-box:hover {
-  background: #e6f0ff;
+  background: #dceceb;
+}
+@media (max-width: 520px) {
+  .register-container { padding: 14px; }
+  .register-card { width: 100%; padding: 28px 20px; }
 }
 </style>

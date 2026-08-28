@@ -7,9 +7,8 @@
         <div class="orbit-dot two"></div>
       </div>
       <div class="intel-copy">
-        <span class="intel-kicker">FIVA AI Intelligence</span>
-        <h2>AI 情报中心</h2>
-        <p>汇总模型调用、税务洞察和经营问答状态，用更清晰的方式观察智能能力在系统里的运行情况。</p>
+        <h2>智能助手</h2>
+        <p>就税负、发票、利润与预算执行进行问答，并查看模型调用情况。</p>
       </div>
       <div class="intel-score">
         <span>累计调用成功率</span>
@@ -29,7 +28,7 @@
     <section class="intel-workspace">
       <el-card shadow="never" class="ai-command-card">
         <template #header>
-          <div class="card-title"><span>Token 趋势</span><small>近 7 天真实用量</small></div>
+          <div class="card-title"><span>Token 趋势</span></div>
         </template>
         <div class="token-bars">
           <div v-for="item in tokenTrend" :key="item.day" class="token-bar-row">
@@ -42,7 +41,7 @@
 
       <el-card shadow="never" class="ai-command-card capability-card">
         <template #header>
-          <div class="card-title"><span>能力编排</span><small>点击直接提问</small></div>
+          <div class="card-title"><span>常用提问</span></div>
         </template>
         <div class="capability-list">
           <button v-for="item in capabilities" :key="item.title" type="button" @click="sendQuick(item.prompt)">
@@ -54,12 +53,12 @@
 
       <el-card shadow="never" class="ai-chat-card">
         <template #header>
-          <div class="card-title"><span>智能问答</span><small>{{ loading ? '生成中' : '可用' }}</small></div>
+          <div class="card-title"><span>财税问答</span></div>
         </template>
         <div ref="messageBoxRef" class="chat-stream">
           <div v-if="messages.length === 0" class="chat-empty">
             <div class="mini-orb"><span></span></div>
-            <strong>选择一个能力或直接输入问题</strong>
+            <strong>选择问题或直接输入</strong>
             <p>可以询问税负、发票风险、利润波动、预算执行和经营摘要。</p>
           </div>
           <div v-for="(msg, idx) in messages" :key="idx" class="chat-message" :class="msg.role">
@@ -209,15 +208,14 @@ async function clearChat() {
 
 <style scoped>
 .ai-intel-page { display: flex; flex-direction: column; gap: 16px; }
-.intel-hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 22px; align-items: center; padding: 26px; border: 1px solid rgba(38,54,78,.08); border-radius: 8px; color: #fff; background: radial-gradient(circle at 16% 12%, rgba(120,240,194,.30), transparent 28%), linear-gradient(135deg, #111a2b, #17333a 58%, #1e7d7a); box-shadow: 0 20px 54px rgba(17,32,50,.14); overflow: hidden; }
+.intel-hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 22px; align-items: center; padding: 26px; border: 1px solid rgba(38,54,78,.08); border-radius: 8px; color: #fff; background: radial-gradient(circle at 16% 12%, rgba(120,240,194,.30), transparent 28%), linear-gradient(135deg, #111a2b, #17333a 58%, #1a6b68); box-shadow: 0 20px 54px rgba(17,32,50,.14); overflow: hidden; }
 .intel-orb-wrap { position: relative; display: grid; width: 112px; height: 112px; place-items: center; }
-.intel-orb { position: relative; display: grid; width: 82px; height: 82px; place-items: center; border-radius: 24px; background: conic-gradient(from 160deg, #20b486, #2b7fff, #8a5cf6, #20b486); box-shadow: 0 22px 55px rgba(32,180,134,.34); animation: aiFloat 3s ease-in-out infinite; }
+.intel-orb { position: relative; display: grid; width: 82px; height: 82px; place-items: center; border-radius: 24px; background: conic-gradient(from 160deg, #1a6b68, #209477, #2b5f8a, #1a6b68); box-shadow: 0 22px 55px rgba(26,107,104,.34); animation: aiFloat 3s ease-in-out infinite; }
 .intel-orb::before { content: ''; position: absolute; inset: -12px; border-radius: 30px; border: 1px solid rgba(255,255,255,.24); animation: aiPulse 2.2s ease-in-out infinite; }
-.intel-orb span { position: relative; width: 40px; height: 40px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 10px rgba(30,125,122,.16); }
+.intel-orb span { position: relative; width: 40px; height: 40px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 10px rgba(26,107,104,.16); }
 .intel-orb i { position: absolute; width: 14px; height: 14px; right: 17px; top: 17px; border-radius: 50%; background: #78f0c2; box-shadow: 0 0 20px #78f0c2; }
 .orbit-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #78f0c2; box-shadow: 0 0 18px #78f0c2; animation: orbit 4s linear infinite; }
 .orbit-dot.two { width: 8px; height: 8px; background: #9cc8ff; animation-duration: 5.5s; animation-direction: reverse; }
-.intel-kicker { color: rgba(232,241,255,.70); font-size: 12px; font-weight: 780; letter-spacing: .12em; text-transform: uppercase; }
 .intel-copy h2 { margin: 8px 0; color: #fff !important; font-size: 30px !important; }
 .intel-copy p { max-width: 680px; color: rgba(232,241,255,.76); line-height: 1.8; }
 .intel-score { min-width: 180px; padding: 16px; border-radius: 8px; background: rgba(255,255,255,.12); backdrop-filter: blur(12px); }
@@ -225,36 +223,35 @@ async function clearChat() {
 .intel-score strong { display: block; margin: 8px 0; color: #fff; font-size: 28px; }
 .intel-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .intel-card { padding: 18px; border: 1px solid rgba(38,54,78,.08); border-radius: 8px; background: rgba(255,255,255,.92); box-shadow: 0 14px 35px rgba(17,32,50,.06); transition: transform .22s ease, box-shadow .22s ease; }
-.intel-card:hover, .ai-command-card:hover, .ai-chat-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 22px 52px rgba(17,32,50,.12) !important; }
-.intel-card span { color: #718096; font-size: 13px; font-weight: 720; }
+.intel-card:hover, .ai-command-card:hover, .ai-chat-card:hover { transform: translateY(-3px); box-shadow: 0 22px 52px rgba(17,32,50,.12) !important; }
+.intel-card span { color: #718096; font-size: 13px; font-weight: 700; }
 .intel-card strong { display: block; margin-top: 10px; color: #172033; font-size: 26px; }
 .intel-card p { margin-top: 8px; color: #718096; font-size: 13px; }
 .intel-workspace { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(280px, .8fr) minmax(420px, 1.4fr); gap: 16px; align-items: stretch; }
 .ai-command-card, .ai-chat-card { transition: transform .22s ease, box-shadow .22s ease; }
 .card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.card-title span { color: #26364f; font-size: 15px; font-weight: 760; }
-.card-title small { color: #718096; font-size: 12px; font-weight: 600; }
+.card-title span { color: #26364f; font-size: 15px; font-weight: 700; }
 .token-bars { display: grid; gap: 15px; }
-.token-bar-row { display: grid; grid-template-columns: 42px 1fr 44px; gap: 10px; align-items: center; color: #53627a; font-size: 12px; font-weight: 720; }
+.token-bar-row { display: grid; grid-template-columns: 42px 1fr 44px; gap: 10px; align-items: center; color: #53627a; font-size: 12px; font-weight: 700; }
 .token-track { height: 10px; overflow: hidden; border-radius: 999px; background: #edf2f7; }
-.token-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #20b486, #2b7fff); box-shadow: 0 0 18px rgba(32,180,134,.30); }
+.token-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1a6b68, #209477); box-shadow: 0 0 18px rgba(26,107,104,.30); }
 .capability-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.capability-list button { min-height: 86px; padding: 14px; border: 1px solid rgba(30,125,122,.14); border-radius: 8px; text-align: left; background: linear-gradient(135deg, #fff, #f1faf8); cursor: pointer; transition: transform .2s ease, border-color .2s ease; }
-.capability-list button:hover { transform: translateY(-2px); border-color: rgba(30,125,122,.34); }
-.capability-list span { display: block; color: #172033; font-weight: 780; }
+.capability-list button { min-height: 86px; padding: 14px; border: 1px solid rgba(26,107,104,.14); border-radius: 8px; text-align: left; background: linear-gradient(135deg, #fff, #f1faf8); cursor: pointer; transition: transform .2s ease, border-color .2s ease; }
+.capability-list button:hover { transform: translateY(-2px); border-color: rgba(26,107,104,.34); }
+.capability-list span { display: block; color: #172033; font-weight: 700; }
 .capability-list small { display: block; margin-top: 8px; color: #718096; line-height: 1.5; }
 .ai-chat-card :deep(.el-card__body) { display: grid; grid-template-rows: minmax(300px, 1fr) auto; gap: 14px; }
 .chat-stream { min-height: 330px; max-height: 430px; overflow: auto; padding: 16px; border: 1px solid rgba(38,54,78,.08); border-radius: 8px; background: linear-gradient(180deg, rgba(247,250,252,.92), rgba(255,255,255,.92)); }
 .chat-empty { height: 100%; min-height: 280px; display: grid; place-items: center; align-content: center; gap: 10px; text-align: center; color: #718096; }
 .chat-empty strong { color: #172033; font-size: 16px; }
 .chat-empty p { max-width: 360px; line-height: 1.7; }
-.mini-orb { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 16px; background: conic-gradient(from 160deg, #20b486, #2b7fff, #8a5cf6, #20b486); animation: aiSpin 4s linear infinite; }
+.mini-orb { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 16px; background: conic-gradient(from 160deg, #1a6b68, #209477, #2b5f8a, #1a6b68); animation: aiSpin 4s linear infinite; }
 .mini-orb span { width: 24px; height: 24px; border-radius: 50%; background: #fff; }
 .chat-message { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 12px; }
 .chat-message.user { justify-content: flex-end; }
 .chat-bubble { max-width: 78%; padding: 12px 14px; border-radius: 10px; color: #26364f; line-height: 1.75; white-space: pre-wrap; background: #fff; box-shadow: 0 8px 22px rgba(17,32,50,.06); }
-.chat-message.user .chat-bubble { color: #fff; background: linear-gradient(135deg, #1e7d7a, #209477); }
-.typing-cursor { width: 2px; height: 18px; background: #20b486; animation: blink 1s infinite; }
+.chat-message.user .chat-bubble { color: #fff; background: linear-gradient(135deg, #1a6b68, #209477); }
+.typing-cursor { width: 2px; height: 18px; background: #1a6b68; animation: blink 1s infinite; }
 .chat-input-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; }
 @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
 @keyframes aiSpin { to { transform: rotate(360deg); } }

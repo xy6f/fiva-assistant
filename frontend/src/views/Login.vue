@@ -5,24 +5,23 @@
         <div class="brand-row">
           <div class="brand-mark login-mark">F</div>
           <div>
-            <div class="brand-title dark">FIVA Assistant</div>
-            <div class="brand-subtitle dark">财税智能经营中枢</div>
+            <div class="brand-title dark">FIVA</div>
+            <div class="brand-subtitle dark">企业财税系统</div>
           </div>
         </div>
-        <h1>让凭证、税务与经营数据在一个工作台里流动。</h1>
-        <p>面向财务团队的 AI 辅助系统，覆盖发票、凭证、账簿、税务测算与报表分析。</p>
+        <h1>凭证、账簿与税务，集中管理。</h1>
+        <p>面向财务团队的企业工作台，覆盖发票、凭证、账簿、税务测算与报表。</p>
         <div class="metric-strip">
-          <div><strong>AI</strong><span>财税问答</span></div>
-          <div><strong>16+</strong><span>业务模块</span></div>
-          <div><strong>实时</strong><span>经营洞察</span></div>
+          <div><strong>凭证</strong><span>录入与审核</span></div>
+          <div><strong>税务</strong><span>测算与筹划</span></div>
+          <div><strong>报表</strong><span>账簿与披露</span></div>
         </div>
       </div>
 
       <div class="login-card">
         <div class="login-header">
-          <span class="login-kicker">Welcome back</span>
           <h2>登录工作台</h2>
-          <p>使用你的账号继续处理财税业务</p>
+          <p>使用已开通的账号继续处理财税业务</p>
         </div>
         <el-form :model="form" :rules="rules" ref="formRef" @submit.prevent="handleLogin">
           <el-form-item prop="username">
@@ -54,11 +53,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { login, getCaptcha } from '../api/auth'
-
-const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const captchaQuestion = ref('')
@@ -119,97 +115,78 @@ async function handleLogin() {
   display: grid;
   place-items: center;
   padding: 32px;
-  background: linear-gradient(135deg, #eef2f7 0%, #f8fafc 52%, #e8f4f3 100%);
+  background: var(--fiva-bg);
 }
 .login-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) 430px;
-  width: min(1080px, 100%);
-  min-height: 640px;
+  grid-template-columns: minmax(0, 1.1fr) 420px;
+  width: min(980px, 100%);
+  min-height: 560px;
   overflow: hidden;
-  border: 1px solid rgba(38, 54, 78, .10);
-  border-radius: 10px;
+  border: 1px solid var(--fiva-line);
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 30px 80px rgba(17, 32, 50, .14);
+  box-shadow: 0 24px 70px rgba(21, 32, 51, .12);
 }
 .login-story {
-  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 44px;
+  padding: 40px;
   color: #fff;
-  background: linear-gradient(145deg, #121a2a 0%, #17333a 58%, #1e7d7a 100%);
+  background: linear-gradient(180deg, #121a2a 0%, #172033 48%, #102c2d 100%);
 }
-.login-story::after {
-  content: "";
-  position: absolute;
-  right: 38px;
-  bottom: 38px;
-  width: 260px;
-  height: 260px;
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 50%;
-}
-.brand-row { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
-.login-mark { background: linear-gradient(135deg, #20b486, #2b7fff); }
-.dark.brand-title { color: #fff; }
-.dark.brand-subtitle { color: rgba(232, 241, 255, .66); }
+.brand-row { display: flex; align-items: center; gap: 12px; }
+.login-mark { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; color: #fff; font-weight: 700; background: linear-gradient(135deg, #1a6b68, #209477); box-shadow: 0 10px 22px rgba(26,107,104,.28); }
+.dark.brand-title { color: #fff; font-size: 18px; font-weight: 650; letter-spacing: .04em; }
+.dark.brand-subtitle { color: rgba(226, 232, 240, .58); font-size: 13px; }
 .login-story h1 {
-  position: relative;
-  z-index: 1;
-  max-width: 560px;
-  margin-top: 70px;
-  font-size: 42px;
-  line-height: 1.18;
-  font-weight: 820;
-  letter-spacing: 0;
+  max-width: 480px;
+  margin-top: 48px;
+  font-size: 32px;
+  line-height: 1.28;
+  font-weight: 600;
 }
 .login-story p {
-  position: relative;
-  z-index: 1;
-  max-width: 520px;
-  margin-top: 18px;
-  color: rgba(232, 241, 255, .72);
-  font-size: 15px;
-  line-height: 1.9;
+  max-width: 460px;
+  margin-top: 14px;
+  color: rgba(226, 232, 240, .68);
+  font-size: 14px;
+  line-height: 1.8;
 }
 .metric-strip {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
   margin-top: auto;
 }
 .metric-strip div {
-  padding: 16px;
-  border: 1px solid rgba(255,255,255,.12);
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.10);
   border-radius: 8px;
-  background: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.06);
 }
-.metric-strip strong { display: block; font-size: 22px; }
-.metric-strip span { display: block; margin-top: 4px; color: rgba(232, 241, 255, .62); font-size: 12px; }
-.login-card { display: flex; flex-direction: column; justify-content: center; padding: 44px 42px; }
-.login-header { margin-bottom: 28px; }
-.login-kicker { color: #1e7d7a; font-size: 12px; font-weight: 780; text-transform: uppercase; letter-spacing: .12em; }
-.login-header h2 { margin: 8px 0 8px; color: #172033; font-size: 30px; font-weight: 820; }
-.login-header p { color: #718096; font-size: 14px; }
+.metric-strip strong { display: block; font-size: 16px; font-weight: 600; }
+.metric-strip span { display: block; margin-top: 4px; color: rgba(226, 232, 240, .58); font-size: 12px; }
+.login-card { display: flex; flex-direction: column; justify-content: center; padding: 40px 36px; }
+.login-header { margin-bottom: 24px; }
+.login-header h2 { margin: 0 0 8px; color: var(--fiva-text); font-size: 24px; font-weight: 600; }
+.login-header p { color: var(--fiva-muted); font-size: 14px; }
 .captcha-row { display: grid; grid-template-columns: 1fr 116px; gap: 10px; width: 100%; }
 .captcha-box {
   height: 40px;
-  border: 1px solid rgba(30, 125, 122, .24);
-  border-radius: 6px;
-  color: #14615f;
+  border: 1px solid var(--fiva-line);
+  border-radius: 8px;
+  color: var(--fiva-primary-strong);
   font-size: 15px;
-  font-weight: 800;
-  background: #e8f4f3;
+  font-weight: 700;
+  background: var(--fiva-primary-soft);
   cursor: pointer;
 }
-.captcha-box:hover { background: #d9eeec; }
+.captcha-box:hover { background: #dceceb; }
 .login-button { width: 100%; height: 42px; }
-.login-footer { text-align: center; margin-top: 14px; color: #718096; font-size: 14px; }
-.login-footer .link { color: #1e7d7a; text-decoration: none; margin-left: 4px; font-weight: 700; }
+.login-footer { text-align: center; margin-top: 14px; color: var(--fiva-muted); font-size: 14px; }
+.login-footer .link { color: var(--fiva-primary); text-decoration: none; margin-left: 4px; font-weight: 600; }
 .login-footer .link:hover { text-decoration: underline; }
 @media (max-width: 900px) {
   .login-panel { grid-template-columns: 1fr; }
