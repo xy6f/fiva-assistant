@@ -2,7 +2,10 @@
   <div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="margin:0">科目余额表</h2>
-      <el-date-picker v-model="period" type="month" value-format="YYYY-MM" placeholder="选择月份" @change="loadTrialBalance" style="width:160px" />
+      <div style="display:flex;gap:10px;align-items:center">
+        <el-date-picker v-model="period" type="month" value-format="YYYY-MM" placeholder="选择月份" @change="loadTrialBalance" style="width:160px" />
+        <el-button type="success" @click="handleExport">导出Excel</el-button>
+      </div>
     </div>
 
     <el-card v-loading="loading">
@@ -64,7 +67,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getTrialBalance } from '../api/ledger'
+import { getTrialBalance, exportTrialBalanceExcel } from '../api/ledger'
+import { downloadBlob } from '../utils/download'
 import { ElMessage } from 'element-plus'
 
 const period = ref('')
@@ -85,6 +89,17 @@ async function loadTrialBalance() {
     ElMessage.error('加载科目余额表失败')
   } finally {
     loading.value = false
+  }
+}
+
+async function handleExport() {
+  try {
+    const { data: blob } = await exportTrialBalanceExcel({ period: period.value })
+    const name = `科目余额表_${period.value || '全部'}.xlsx`
+    downloadBlob(blob, name)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
   }
 }
 

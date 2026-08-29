@@ -7,6 +7,7 @@
           <el-option v-for="acc in accounts" :key="acc.id" :label="`${acc.code} ${acc.name}`" :value="acc.id" />
         </el-select>
         <el-date-picker v-model="period" type="month" value-format="YYYY-MM" placeholder="选择月份" @change="loadLedger" style="width:160px;margin-right:10px" />
+        <el-button type="success" @click="handleExport">导出Excel</el-button>
       </div>
     </div>
 
@@ -53,8 +54,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getDetailLedger } from '../api/ledger'
+import { getDetailLedger, exportDetailLedgerExcel } from '../api/ledger'
 import { getAccountList } from '../api/account'
+import { downloadBlob } from '../utils/download'
 import { ElMessage } from 'element-plus'
 
 const accounts = ref([])
@@ -86,6 +88,22 @@ async function loadLedger() {
     ElMessage.error('加载明细账失败')
   } finally {
     loading.value = false
+  }
+}
+
+async function handleExport() {
+  if (!selectedAccount.value) {
+    ElMessage.warning('请先选择科目')
+    return
+  }
+  try {
+    const acc = accounts.value.find(a => a.id === selectedAccount.value)
+    const { data: blob } = await exportDetailLedgerExcel({ accountId: selectedAccount.value, period: period.value })
+    const name = `明细账_${acc ? acc.code + acc.name : ''}_${period.value || '全部'}.xlsx`
+    downloadBlob(blob, name)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
   }
 }
 

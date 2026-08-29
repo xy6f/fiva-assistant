@@ -4,7 +4,7 @@
       <h2 style="margin:0">费用报销管理</h2>
       <div>
         <el-button type="success" @click="handleExport">导出Excel</el-button>
-        <el-button type="primary" @click="openCreate">新建报销单</el-button>
+        <el-button v-if="canWrite()" type="primary" @click="openCreate">新建报销单</el-button>
       </div>
     </div>
 
@@ -45,10 +45,10 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.status === 'PENDING'" size="small" type="success" @click="handleApprove(row, true)">通过</el-button>
-            <el-button v-if="row.status === 'PENDING'" size="small" type="danger" @click="handleApprove(row, false)">驳回</el-button>
-            <el-button v-if="row.status === 'PENDING'" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button v-if="row.status === 'PENDING'" size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+            <el-button v-if="row.status === 'PENDING' && canWrite()" size="small" type="success" @click="handleApprove(row, true)">通过</el-button>
+            <el-button v-if="row.status === 'PENDING' && canWrite()" size="small" type="danger" @click="handleApprove(row, false)">驳回</el-button>
+            <el-button v-if="row.status === 'PENDING' && canWrite()" size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button v-if="row.status === 'PENDING' && canWrite()" size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -81,6 +81,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getExpenseList, approveExpense, deleteExpense, getExpenseStatistics, exportExpenseExcel } from '../api/expense'
+import { canWrite } from '../utils/auth'
 import ExpenseForm from './ExpenseForm.vue'
 
 const list = ref([])

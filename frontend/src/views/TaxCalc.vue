@@ -100,6 +100,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { calculateTax, streamTaxSuggestion } from '../api/tax'
+import { renderMarkdown } from '../utils/markdown'
 
 const router = useRouter()
 
@@ -117,16 +118,7 @@ const calculating = ref(false)
 const suggestLoading = ref(false)
 const suggestionError = ref(false)
 
-/** 将 markdown 文本渲染为 HTML（加粗 + 编号分段） */
-const renderedSuggestion = computed(() => {
-  if (!suggestion.value) return ''
-  let html = suggestion.value
-    // 加粗 **text**
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // 编号分段：1.**xxx** 或 1. xxx
-    .replace(/(\d+)\.\s*/g, '<br><strong style="color:#1a6b68">$1.</strong> ')
-  return html
-})
+const renderedSuggestion = computed(() => renderMarkdown(suggestion.value))
 
 function formatMoney(val) {
   if (!val) return '0.00'

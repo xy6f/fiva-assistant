@@ -4,6 +4,7 @@ import com.xy6f.fiva_assistant.model.Account;
 import com.xy6f.fiva_assistant.model.SubjectTemplate;
 import com.xy6f.fiva_assistant.mapper.AccountMapper;
 import com.xy6f.fiva_assistant.mapper.SubjectTemplateMapper;
+import com.xy6f.fiva_assistant.mapper.VoucherEntryMapper;
 import com.xy6f.fiva_assistant.util.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ public class AccountService {
 
     private final AccountMapper accountMapper;
     private final SubjectTemplateMapper subjectTemplateMapper;
+    private final VoucherEntryMapper voucherEntryMapper;
 
     /**
      * 获取当前用户的所有科目（若为空则自动初始化默认科目表）
@@ -48,8 +50,9 @@ public class AccountService {
     }
 
     public Account getById(Long id) {
-        Account account = accountMapper.findById(id);
-        if (account == null) throw new RuntimeException("科目不存在");
+        Long userId = UserContext.getUserId();
+        Account account = accountMapper.findByIdAndUserId(id, userId);
+        if (account == null) throw new RuntimeException("科目不存在或无权访问");
         return account;
     }
 
@@ -77,11 +80,11 @@ public class AccountService {
 
     @Transactional
     public Account update(Long id, Account updated) {
-        Account account = accountMapper.findById(id);
-        if (account == null) throw new RuntimeException("科目不存在");
+        Long userId = UserContext.getUserId();
+        Account account = accountMapper.findByIdAndUserId(id, userId);
+        if (account == null) throw new RuntimeException("科目不存在或无权访问");
         // 如果编码变了，校验新编码唯一性
         if (!account.getCode().equals(updated.getCode())) {
-            Long userId = UserContext.getUserId();
             if (accountMapper.existsByUserIdAndCode(userId, updated.getCode())) {
                 throw new RuntimeException("科目编码已存在: " + updated.getCode());
             }
@@ -97,6 +100,12 @@ public class AccountService {
 
     @Transactional
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
+        Account account = accountMapper.findByIdAndUserId(id, userId);
+        if (account == null) throw new RuntimeException("科目不存在或无权访问");
+        if (voucherEntryMapper.existsByAccountId(id)) {
+            throw new RuntimeException("该科目已有凭证记录，无法删除");
+        }
         accountMapper.deleteById(id);
     }
 

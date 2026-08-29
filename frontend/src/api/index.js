@@ -16,14 +16,15 @@ api.interceptors.request.use(config => {
 })
 
 // 响应拦截器
+let isRedirecting = false
 api.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401) {
-      // Token 过期或无效，清除登录状态
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      if (window.location.pathname !== '/login') {
+      if (!isRedirecting && window.location.pathname !== '/login') {
+        isRedirecting = true
         ElMessage.error('登录已过期，请重新登录')
         window.location.href = '/login'
       }

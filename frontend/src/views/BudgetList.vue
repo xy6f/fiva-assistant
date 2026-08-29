@@ -2,7 +2,7 @@
   <div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="margin:0">预算管理</h2>
-      <el-button type="primary" @click="openCreate">新建预算</el-button>
+      <el-button v-if="canWrite()" type="primary" @click="openCreate">新建预算</el-button>
     </div>
 
     <!-- 筛选 -->
@@ -63,8 +63,8 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+            <el-button v-if="canWrite()" size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button v-if="canWrite()" size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -95,6 +95,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getBudgetList, deleteBudget, updateBudgetUsed } from '../api/budget'
+import { canWrite } from '../utils/auth'
 import BudgetForm from './BudgetForm.vue'
 
 const list = ref([])

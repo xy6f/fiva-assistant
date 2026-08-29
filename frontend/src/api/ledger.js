@@ -11,3 +11,15 @@ export function getGeneralLedger(params) {
 export function getTrialBalance(params) {
   return api.get('/ledger/trial-balance', { params })
 }
+
+export function exportTrialBalanceExcel(params) {
+  return api.get('/ledger/trial-balance/export/excel', { params, responseType: 'blob' })
+}
+
+export function exportDetailLedgerExcel(params) {
+  return api.get('/ledger/detail/export/excel', { params, responseType: 'blob' })
+}
+
+export function exportGeneralLedgerExcel(params) {
+  return api.get('/ledger/general/export/excel', { params, responseType: 'blob' })
+}

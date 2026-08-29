@@ -60,7 +60,21 @@ public class SalaryService {
                 r.setId(existing.getId());
                 salaryRecordMapper.update(r);
             } else {
-                salaryRecordMapper.insert(r);
+                try {
+                    salaryRecordMapper.insert(r);
+                } catch (org.springframework.dao.DuplicateKeyException e) {
+                    // 并发插入时的唯一约束冲突：重新查询并更新
+                    SalaryRecord raceExisting = salaryRecordMapper.findByUserIdAndEmployeeNoAndMonth(
+                            userId, r.getEmployeeNo(), r.getMonth());
+                    if (raceExisting != null && ("POSTED".equals(raceExisting.getStatus()) || "PAID".equals(raceExisting.getStatus()))) {
+                        throw new IllegalArgumentException("员工[" + r.getEmployeeName() + "] "
+                                + r.getMonth() + " 的工资已过账，不可重复提交");
+                    }
+                    if (raceExisting != null) {
+                        r.setId(raceExisting.getId());
+                        salaryRecordMapper.update(r);
+                    }
+                }
             }
         }
         log.info("用户{}批量保存{}条工资记录", userId, records.size());
@@ -80,8 +94,9 @@ public class SalaryService {
      */
     @Transactional
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
         SalaryRecord r = salaryRecordMapper.findById(id);
-        if (r == null) throw new RuntimeException("记录不存在");
+        if (r == null || !userId.equals(r.getUserId())) throw new RuntimeException("记录不存在或无权访问");
         if ("POSTED".equals(r.getStatus()) || "PAID".equals(r.getStatus())) {
             throw new RuntimeException("已过账的记录不可删除");
         }
@@ -110,18 +125,28 @@ public class SalaryService {
                         Collectors.reducing(BigDecimal.ZERO, SalaryRecord::getGrossPay, BigDecimal::add)));
 
         Account salaryPayable = accountResolver.ensureAccount(userId, "2211", "应付职工薪酬", "LIABILITY", "CREDIT");
-        Account managementExpense = accountResolver.ensureAccount(userId, "6601", "管理费用", "EXPENSE", "DEBIT");
 
         BigDecimal totalGross = BigDecimal.ZERO;
         List<VoucherEntry> entries = new ArrayList<>();
 
+        // 按部门选择对应费用科目
         for (Map.Entry<String, BigDecimal> entry : deptSum.entrySet()) {
+            String dept = entry.getKey();
             BigDecimal deptAmount = entry.getValue();
             totalGross = totalGross.add(deptAmount);
 
+            Account expenseAccount;
+            if (dept.contains("销售")) {
+                expenseAccount = accountResolver.ensureAccount(userId, "6602", "销售费用", "EXPENSE", "DEBIT");
+            } else if (dept.contains("生产")) {
+                expenseAccount = accountResolver.ensureAccount(userId, "5001", "生产成本", "EXPENSE", "DEBIT");
+            } else {
+                expenseAccount = accountResolver.ensureAccount(userId, "6601", "管理费用", "EXPENSE", "DEBIT");
+            }
+
             entries.add(VoucherEntry.builder()
-                    .accountId(managementExpense.getId())
-                    .summary(month + " 工资-" + entry.getKey())
+                    .accountId(expenseAccount.getId())
+                    .summary(month + " 工资-" + dept)
                     .debitAmount(deptAmount)
                     .creditAmount(BigDecimal.ZERO)
                     .build());

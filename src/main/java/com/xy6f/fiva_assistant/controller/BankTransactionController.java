@@ -4,13 +4,15 @@ import com.xy6f.fiva_assistant.annotation.Audit;
 import com.xy6f.fiva_assistant.model.BankTransaction;
 import com.xy6f.fiva_assistant.model.Voucher;
 import com.xy6f.fiva_assistant.service.BankTransactionService;
+import com.xy6f.fiva_assistant.util.ExcelExportUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -104,6 +106,45 @@ public class BankTransactionController {
             return ResponseEntity.ok(Map.of("message", "删除成功"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * 导出银行流水
+     */
+    @GetMapping("/api/bank-transaction/export/excel")
+    public ResponseEntity<byte[]> exportExcel(@RequestParam(required = false) String status) {
+        try {
+            List<BankTransaction> data;
+            if (status != null && !status.isEmpty()) {
+                data = bankTransactionService.listByStatus(status);
+            } else {
+                data = bankTransactionService.listAll();
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (BankTransaction t : data) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("交易日期", t.getTransactionDate());
+                row.put("对方", t.getCounterparty());
+                row.put("摘要", t.getSummary());
+                row.put("收入", t.getCreditAmount());
+                row.put("支出", t.getDebitAmount());
+                row.put("余额", t.getBalance());
+                row.put("状态", t.getStatus());
+                rows.add(row);
+            }
+
+            byte[] excelData = ExcelExportUtil.exportTransactions(rows,
+                    new String[]{"交易日期", "对方", "摘要", "收入", "支出", "余额", "状态"},
+                    "银行流水");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", "银行流水_" + (status != null && !status.isEmpty() ? status : "全部") + ".xlsx");
+            return ResponseEntity.ok().headers(headers).body(excelData);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 }

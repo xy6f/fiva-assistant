@@ -220,6 +220,13 @@ async function submitForm() {
     ElMessage.warning('借贷不平衡或金额为零')
     return
   }
+  // 检查单行不能同时有借方和贷方
+  for (let i = 0; i < validEntries.length; i++) {
+    if (validEntries[i].debitAmount > 0 && validEntries[i].creditAmount > 0) {
+      ElMessage.warning(`第${i + 1}行不能同时填写借方和贷方金额`)
+      return
+    }
+  }
 
   try {
     const payload = {

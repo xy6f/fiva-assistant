@@ -30,6 +30,7 @@ export function streamChat(sessionId, message, { onSession, onToken, onDone, onE
   const controller = new AbortController()
   const backendUrl = import.meta.env.DEV ? 'http://localhost:8080' : ''
   const token = localStorage.getItem('token')
+  let doneCalled = false
 
   fetch(`${backendUrl}/api/chat/stream`, {
     method: 'POST',
@@ -65,13 +66,14 @@ export function streamChat(sessionId, message, { onSession, onToken, onDone, onE
           const data = line.slice(5).trim()
           if (currentEvent === 'session') onSession?.(data)
           else if (currentEvent === 'token') onToken?.(data)
-          else if (currentEvent === 'done') onDone?.()
+          else if (currentEvent === 'done' && !doneCalled) { doneCalled = true; onDone?.() }
           else if (currentEvent === 'error') onError?.(data)
           currentEvent = null
         }
       }
     }
-    onDone?.()
+    // stream 正常结束但未收到 event:done 时兜底
+    if (!doneCalled) { doneCalled = true; onDone?.() }
   }).catch(err => {
     if (err.name !== 'AbortError') onError?.(err.message)
   })

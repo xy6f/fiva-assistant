@@ -59,6 +59,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { streamTaxAnalysis } from '../api/tax'
+import { renderMarkdown } from '../utils/markdown'
 
 const taxData = ref(null)
 const analysis = ref('')
@@ -70,15 +71,7 @@ function formatMoney(val) {
   return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// 将 Markdown 风格的标题转为 HTML
-const renderedAnalysis = computed(() => {
-  if (!analysis.value) return ''
-  return analysis.value
-    .replace(/^## (.+)$/gm, '<h3 style="margin:20px 0 10px;color:#1c2434;border-bottom:2px solid #1a6b68;padding-bottom:6px">$1</h3>')
-    .replace(/^### (.+)$/gm, '<h4 style="margin:16px 0 8px;color:#303133">$1</h4>')
-    .replace(/^- (.+)$/gm, '<div style="padding-left:20px;margin:4px 0">• $1</div>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-})
+const renderedAnalysis = computed(() => renderMarkdown(analysis.value))
 
 function startAnalysis() {
   if (!taxData.value) {

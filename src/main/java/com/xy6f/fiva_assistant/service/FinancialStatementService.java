@@ -76,7 +76,7 @@ public class FinancialStatementService {
         }
 
         // 累计未分配利润 = 累计收入(贷-借净额) - 累计费用(借-贷净额)，同样来自聚合查询
-        LocalDate sinceStart = LocalDate.of(2020, 1, 1);
+        LocalDate sinceStart = LocalDate.of(end.getYear(), 1, 1);
         Map<Long, BigDecimal[]> periodMap = sumBetween(userId, sinceStart, end);
         BigDecimal netProfit = calcNetProfitFromSums(accounts, periodMap);
         if (netProfit.compareTo(BigDecimal.ZERO) != 0) {

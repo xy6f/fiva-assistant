@@ -8,6 +8,7 @@
         <el-button type="success" @click="handleBatchSave" :disabled="dirtyRows.length === 0">保存</el-button>
         <el-button type="primary" @click="handleGenerateVoucher">生成计提凭证</el-button>
         <el-button type="warning" @click="handleGeneratePayment">生成分录凭证</el-button>
+        <el-button type="success" @click="handleExport">导出Excel</el-button>
       </div>
     </div>
 
@@ -98,7 +99,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getSalaryByMonth, batchSave, generateVoucher, generatePayment, deleteRecord } from '../api/salary'
+import { getSalaryByMonth, batchSave, generateVoucher, generatePayment, deleteRecord, exportSalaryExcel } from '../api/salary'
+import { downloadBlob } from '../utils/download'
 
 const records = ref([])
 const loading = ref(false)
@@ -221,6 +223,17 @@ async function handleDelete(row) {
     } catch (e) { /* cancelled */ }
   } else {
     records.value = records.value.filter(r => r !== row)
+  }
+}
+
+async function handleExport() {
+  try {
+    const { data: blob } = await exportSalaryExcel(currentMonth.value)
+    const name = `工资表_${currentMonth.value}.xlsx`
+    downloadBlob(blob, name)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
   }
 }
 

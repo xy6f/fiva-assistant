@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,8 +46,11 @@ public class ChatService {
     private final BudgetMapper budgetMapper;
     private final AiCallLogService aiCallLogService;
 
-    /** 会话内存记忆：key=sessionId。出错时移除、进程重启后由 DB 历史种子化 */
-    private final Map<String, ChatMemory> memoryCache = new ConcurrentHashMap<>();
+    /** 会话内存记忆：key=sessionId。带 TTL(30min) + maxSize(200) 淘汰 */
+    private final ConcurrentHashMap<String, ChatMemory> memoryCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Long> memoryAccessTime = new ConcurrentHashMap<>();
+    private static final long MEMORY_TTL_MS = 30 * 60 * 1000L;
+    private static final int MEMORY_MAX_ENTRIES = 200;
 
     private static final int MEMORY_MAX_MESSAGES = 20;
 
@@ -101,9 +105,15 @@ public class ChatService {
 
     /**
      * 获取会话记忆；首次访问时用 DB 历史记录种子化。
+     * 带 TTL 和 maxSize 淘汰防止内存泄漏。
      */
     private ChatMemory getMemory(String sessionId, Long userId) {
+        evictStaleMemory();
+        memoryAccessTime.put(sessionId, System.currentTimeMillis());
         return memoryCache.computeIfAbsent(sessionId, id -> {
+            if (memoryCache.size() >= MEMORY_MAX_ENTRIES) {
+                evictOldest();
+            }
             MessageWindowChatMemory memory = MessageWindowChatMemory.withMaxMessages(MEMORY_MAX_MESSAGES);
             try {
                 List<dev.langchain4j.data.message.ChatMessage> dbHistory = loadHistoryAsLangChainMessages(sessionId, userId);
@@ -113,6 +123,29 @@ public class ChatService {
             }
             return memory;
         });
+    }
+
+    private void evictStaleMemory() {
+        long now = System.currentTimeMillis();
+        Iterator<Map.Entry<String, Long>> it = memoryAccessTime.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Long> entry = it.next();
+            if (now - entry.getValue() > MEMORY_TTL_MS) {
+                memoryCache.remove(entry.getKey());
+                it.remove();
+            }
+        }
+    }
+
+    private void evictOldest() {
+        String oldestKey = memoryAccessTime.entrySet().stream()
+                .min(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+        if (oldestKey != null) {
+            memoryCache.remove(oldestKey);
+            memoryAccessTime.remove(oldestKey);
+        }
     }
 
     private List<dev.langchain4j.data.message.ChatMessage> loadHistoryAsLangChainMessages(String sessionId, Long userId) {
@@ -145,7 +178,7 @@ public class ChatService {
         final String finalSessionId = (sessionId == null || sessionId.isBlank()) ? UUID.randomUUID().toString() : sessionId;
         final Long userId = UserContext.getUserId();
 
-        StringBuilder fullResponse = new StringBuilder();
+        StringBuffer fullResponse = new StringBuffer();
         CountDownLatch latch = new CountDownLatch(1);
         long startMs = System.currentTimeMillis();
         final Integer[] usage = {null, null};
@@ -161,6 +194,7 @@ public class ChatService {
                     log.error("Chat AI error", error);
                     // 清空该会话内存记忆，下次从 DB 重新种子化（本轮未落库不会污染上下文）
                     memoryCache.remove(finalSessionId);
+                    memoryAccessTime.remove(finalSessionId);
                     aiCallLogService.record(userId, AiCallLogService.TYPE_CHAT, null, null,
                             System.currentTimeMillis() - startMs, false, error.getMessage());
                     latch.countDown();
@@ -170,6 +204,7 @@ public class ChatService {
         try {
             if (!latch.await(120, TimeUnit.SECONDS)) {
                 memoryCache.remove(finalSessionId);
+                memoryAccessTime.remove(finalSessionId);
                 aiCallLogService.record(userId, AiCallLogService.TYPE_CHAT, usage[0], usage[1],
                         System.currentTimeMillis() - startMs, false, "timeout");
                 throw new RuntimeException("AI 回复超时，请稍后重试");
@@ -203,6 +238,7 @@ public class ChatService {
     public void clearHistory(String sessionId) {
         chatMessageMapper.deleteBySessionIdAndUserId(sessionId, UserContext.getUserId());
         memoryCache.remove(sessionId);
+        memoryAccessTime.remove(sessionId);
     }
 
     /**
@@ -221,7 +257,7 @@ public class ChatService {
             return;
         }
 
-        StringBuilder fullResponse = new StringBuilder();
+        StringBuffer fullResponse = new StringBuffer();
         long startMs = System.currentTimeMillis();
         final Integer[] usage = {null, null};
 
@@ -256,11 +292,12 @@ public class ChatService {
                 .onError(error -> {
                     log.error("Chat AI stream error", error);
                     memoryCache.remove(finalSessionId);
+                    memoryAccessTime.remove(finalSessionId);
                     aiCallLogService.record(userId, AiCallLogService.TYPE_CHAT, usage[0], usage[1],
                             System.currentTimeMillis() - startMs, false, error.getMessage());
                     try {
-                        emitter.send(SseEmitter.event().name("error")
-                                .data(error.getMessage() != null ? error.getMessage() : "AI 服务异常"));
+                        String safeMsg = sanitizeErrorMessage(error);
+                        emitter.send(SseEmitter.event().name("error").data(safeMsg));
                         emitter.completeWithError(error);
                     } catch (Exception e) {
                         emitter.completeWithError(error);
@@ -280,5 +317,17 @@ public class ChatService {
             }
         } catch (Exception ignored) {
         }
+    }
+
+    /**
+     * 脱敏错误信息，避免内部细节（SQL/API key/栈信息）泄露给前端
+     */
+    private String sanitizeErrorMessage(Throwable error) {
+        String msg = error.getMessage();
+        if (msg == null) return "AI 服务异常，请稍后重试";
+        if (msg.contains("api") || msg.contains("key") || msg.contains("auth")) return "AI 服务认证异常，请联系管理员";
+        if (msg.contains("SQL") || msg.contains("JDBC")) return "数据查询异常，请稍后重试";
+        if (msg.contains("timeout") || msg.contains("Timeout")) return "AI 回复超时，请稍后重试";
+        return "AI 服务异常，请稍后重试";
     }
 }

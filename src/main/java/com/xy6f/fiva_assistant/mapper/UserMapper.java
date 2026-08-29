@@ -27,6 +27,9 @@ public interface UserMapper {
     @Select("SELECT * FROM t_user")
     List<User> findAll();
 
+    @Select("SELECT * FROM t_user ORDER BY id ASC LIMIT #{limit} OFFSET #{offset}")
+    List<User> findPage(@Param("offset") int offset, @Param("limit") int limit);
+
     @Insert("INSERT INTO t_user (username, password, real_name, email, phone, department, company_id, role, enabled, last_login_at, created_at, updated_at) " +
             "VALUES (#{username}, #{password}, #{realName}, #{email}, #{phone}, #{department}, #{companyId}, #{role}, #{enabled}, #{lastLoginAt}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")

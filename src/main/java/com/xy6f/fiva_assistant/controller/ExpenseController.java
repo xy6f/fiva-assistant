@@ -49,10 +49,9 @@ public class ExpenseController {
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approve(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         try {
-            String approver = (String) body.getOrDefault("approver", "管理员");
             String opinion = (String) body.get("opinion");
             boolean approved = Boolean.TRUE.equals(body.get("approved"));
-            return ResponseEntity.ok(Map.of("success", true, "data", expenseService.approve(id, approver, opinion, approved)));
+            return ResponseEntity.ok(Map.of("success", true, "data", expenseService.approve(id, opinion, approved)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

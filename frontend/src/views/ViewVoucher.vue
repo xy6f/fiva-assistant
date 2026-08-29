@@ -50,17 +50,17 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{row}">
-            <template v-if="row.status === 'DRAFT'">
+            <template v-if="canWrite() && row.status === 'DRAFT'">
               <el-button size="small" type="warning" @click.stop="handleSubmit(row.id)">提交审核</el-button>
               <el-button size="small" @click.stop="openEditDialog(row)">编辑</el-button>
               <el-button size="small" type="danger" @click.stop="handleDelete(row.id)">删除</el-button>
             </template>
-            <template v-else-if="row.status === 'REVIEWED'">
+            <template v-else-if="canWrite() && row.status === 'REVIEWED'">
               <el-button size="small" type="success" @click.stop="handleApprove(row.id)">通过</el-button>
               <el-button size="small" type="warning" @click.stop="handleReject(row.id)">驳回</el-button>
             </template>
             <template v-else>
-              <span style="color:#909399;font-size:12px">已过账</span>
+              <span style="color:#909399;font-size:12px">{{ row.status === 'POSTED' ? '已过账' : row.status === 'DRAFT' ? '仅查看' : '待处理' }}</span>
             </template>
           </template>
         </el-table-column>
@@ -196,6 +196,7 @@ import { ref, onMounted } from 'vue'
 import { getVoucherPage, updateVoucher, deleteVoucher, exportVoucherExcel, submitForReview, approveVoucher, rejectVoucher, getVoucher } from '../api/voucher'
 import { getAccountList } from '../api/account'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { canWrite } from '../utils/auth'
 
 const vouchers = ref([])
 const page = ref(1)

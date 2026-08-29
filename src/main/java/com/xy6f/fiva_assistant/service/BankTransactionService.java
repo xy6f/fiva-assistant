@@ -124,13 +124,12 @@ public class BankTransactionService {
      */
     @Transactional
     public Voucher matchAndGenerate(Long id) {
+        Long userId = UserContext.getUserId();
         BankTransaction bt = bankTransactionMapper.findById(id);
-        if (bt == null) throw new RuntimeException("流水不存在");
+        if (bt == null || !userId.equals(bt.getUserId())) throw new RuntimeException("流水不存在或无权访问");
         if (!"UNMATCHED".equals(bt.getStatus())) {
             throw new RuntimeException("该流水已处理");
         }
-
-        Long userId = UserContext.getUserId();
         // 银行流水惯例：借方(debit)=支出，贷方(credit)=收入
         boolean hasDebit = bt.getDebitAmount() != null && bt.getDebitAmount().compareTo(BigDecimal.ZERO) > 0;
         boolean hasCredit = bt.getCreditAmount() != null && bt.getCreditAmount().compareTo(BigDecimal.ZERO) > 0;
@@ -216,16 +215,19 @@ public class BankTransactionService {
      */
     @Transactional
     public void ignore(Long id) {
+        Long userId = UserContext.getUserId();
         BankTransaction bt = bankTransactionMapper.findById(id);
-        if (bt == null) throw new RuntimeException("流水不存在");
+        if (bt == null || !userId.equals(bt.getUserId())) throw new RuntimeException("流水不存在或无权访问");
         bt.setStatus("IGNORED");
         bankTransactionMapper.update(bt);
     }
 
     @Transactional
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
         BankTransaction bt = bankTransactionMapper.findById(id);
-        if (bt != null && "MATCHED".equals(bt.getStatus())) {
+        if (bt == null || !userId.equals(bt.getUserId())) throw new RuntimeException("流水不存在或无权访问");
+        if ("MATCHED".equals(bt.getStatus())) {
             throw new RuntimeException("已匹配的流水不可删除，请先删除对应凭证");
         }
         bankTransactionMapper.deleteById(id);

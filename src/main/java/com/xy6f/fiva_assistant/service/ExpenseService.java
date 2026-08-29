@@ -33,10 +33,19 @@ public class ExpenseService {
     public Expense getById(Long id) {
         Expense existing = expenseMapper.findById(id);
         if (existing == null) throw new RuntimeException("报销单不存在: " + id);
+        if (!existing.getUserId().equals(UserContext.getUserId())) {
+            throw new RuntimeException("无权访问该报销单");
+        }
         return existing;
     }
 
     public Expense create(Expense expense) {
+        if (expense.getTitle() == null || expense.getTitle().isBlank()) {
+            throw new RuntimeException("报销标题不能为空");
+        }
+        if (expense.getAmount() == null || expense.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("报销金额必须大于零");
+        }
         expense.setStatus("PENDING");
         expense.setUserId(UserContext.getUserId());
         log.info("Creating expense: {}", expense.getTitle());
@@ -59,11 +68,12 @@ public class ExpenseService {
         return existing;
     }
 
-    public Expense approve(Long id, String approver, String opinion, boolean approved) {
+    public Expense approve(Long id, String opinion, boolean approved) {
         Expense expense = getById(id);
         if (!"PENDING".equals(expense.getStatus())) {
             throw new RuntimeException("该报销单已审批");
         }
+        String approver = String.valueOf(UserContext.getUserId());
         expense.setApprover(approver);
         expense.setApprovalOpinion(opinion);
         expense.setStatus(approved ? "APPROVED" : "REJECTED");

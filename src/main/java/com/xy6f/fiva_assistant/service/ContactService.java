@@ -41,6 +41,9 @@ public class ContactService {
     public Contact getById(Long id) {
         Contact existing = contactMapper.findById(id);
         if (existing == null) throw new RuntimeException("联系人不存在: " + id);
+        if (!existing.getUserId().equals(UserContext.getUserId())) {
+            throw new RuntimeException("无权访问该联系人");
+        }
         return existing;
     }
 
@@ -68,6 +71,11 @@ public class ContactService {
     }
 
     public void delete(Long id) {
+        Contact existing = contactMapper.findById(id);
+        if (existing == null) throw new RuntimeException("联系人不存在: " + id);
+        if (!existing.getUserId().equals(UserContext.getUserId())) {
+            throw new RuntimeException("无权删除该联系人");
+        }
         contactMapper.deleteById(id);
     }
 }

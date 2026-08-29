@@ -31,8 +31,8 @@ public class LedgerService {
      */
     public Map<String, Object> getDetailLedger(Long accountId, String period) {
         Long userId = UserContext.getUserId();
-        Account account = accountMapper.findById(accountId);
-        if (account == null) throw new RuntimeException("科目不存在");
+        Account account = accountMapper.findByIdAndUserId(accountId, userId);
+        if (account == null) throw new RuntimeException("科目不存在或无权访问");
 
         LocalDate[] range = parsePeriod(period);
         LocalDate start = range[0];
@@ -121,12 +121,18 @@ public class LedgerService {
             periodMap.get(e.getAccountId())[1] = periodMap.get(e.getAccountId())[1].add(e.getCreditAmount());
         }
 
-        // 按科目汇总期初余额
+        // 按科目汇总期初余额（根据余额方向区分借贷）
         Map<Long, BigDecimal> openingMap = new HashMap<>();
         for (VoucherEntry e : beforeEntries) {
-            openingMap.merge(e.getAccountId(),
-                    e.getDebitAmount().subtract(e.getCreditAmount()),
-                    BigDecimal::add);
+            Account acc = accounts.stream().filter(a -> a.getId().equals(e.getAccountId())).findFirst().orElse(null);
+            String direction = acc != null ? acc.getBalanceDirection() : "DEBIT";
+            BigDecimal net;
+            if ("CREDIT".equals(direction)) {
+                net = e.getCreditAmount().subtract(e.getDebitAmount());
+            } else {
+                net = e.getDebitAmount().subtract(e.getCreditAmount());
+            }
+            openingMap.merge(e.getAccountId(), net, BigDecimal::add);
         }
 
         List<Map<String, Object>> items = new ArrayList<>();
@@ -179,12 +185,18 @@ public class LedgerService {
             periodMap.get(e.getAccountId())[1] = periodMap.get(e.getAccountId())[1].add(e.getCreditAmount());
         }
 
-        // 按科目汇总期初余额
+        // 按科目汇总期初余额（根据余额方向区分借贷）
         Map<Long, BigDecimal> openingMap = new HashMap<>();
         for (VoucherEntry e : beforeEntries) {
-            openingMap.merge(e.getAccountId(),
-                    e.getDebitAmount().subtract(e.getCreditAmount()),
-                    BigDecimal::add);
+            Account acc = accounts.stream().filter(a -> a.getId().equals(e.getAccountId())).findFirst().orElse(null);
+            String direction = acc != null ? acc.getBalanceDirection() : "DEBIT";
+            BigDecimal net;
+            if ("CREDIT".equals(direction)) {
+                net = e.getCreditAmount().subtract(e.getDebitAmount());
+            } else {
+                net = e.getDebitAmount().subtract(e.getCreditAmount());
+            }
+            openingMap.merge(e.getAccountId(), net, BigDecimal::add);
         }
 
         List<Map<String, Object>> items = new ArrayList<>();

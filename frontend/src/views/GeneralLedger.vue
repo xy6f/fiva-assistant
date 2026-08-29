@@ -2,7 +2,10 @@
   <div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="margin:0">总账</h2>
-      <el-date-picker v-model="period" type="month" value-format="YYYY-MM" placeholder="选择月份" @change="loadLedger" style="width:160px" />
+      <div style="display:flex;gap:10px;align-items:center">
+        <el-date-picker v-model="period" type="month" value-format="YYYY-MM" placeholder="选择月份" @change="loadLedger" style="width:160px" />
+        <el-button type="success" @click="handleExport">导出Excel</el-button>
+      </div>
     </div>
 
     <el-card v-loading="loading">
@@ -38,7 +41,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getGeneralLedger } from '../api/ledger'
+import { getGeneralLedger, exportGeneralLedgerExcel } from '../api/ledger'
+import { downloadBlob } from '../utils/download'
 import { ElMessage } from 'element-plus'
 
 const period = ref('')
@@ -73,6 +77,17 @@ async function loadLedger() {
     ElMessage.error('加载总账失败')
   } finally {
     loading.value = false
+  }
+}
+
+async function handleExport() {
+  try {
+    const { data: blob } = await exportGeneralLedgerExcel({ period: period.value })
+    const name = `总账_${period.value || '全部'}.xlsx`
+    downloadBlob(blob, name)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
   }
 }
 

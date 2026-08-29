@@ -4,7 +4,7 @@ import { getRole } from '../utils/auth'
 const routes = [
   { path: '/login', name: 'Login', component: () => import('../views/Login.vue'), meta: { public: true, title: '登录' } },
   { path: '/register', name: 'Register', component: () => import('../views/Register.vue'), meta: { public: true, title: '注册' } },
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', redirect: '/login' },
   { path: '/dashboard', name: 'Dashboard', component: () => import('../views/Dashboard.vue'), meta: { title: '财务仪表盘', section: '工作台', roles: ['ADMIN', 'MANAGER', 'ACCOUNTANT', 'VIEWER'] } },
   { path: '/voucher/add', name: 'AddVoucher', component: () => import('../views/AddVoucher.vue'), meta: { title: '新增凭证', section: '凭证管理', roles: ['ADMIN', 'MANAGER', 'ACCOUNTANT'] } },
   { path: '/voucher/list', name: 'ViewVoucher', component: () => import('../views/ViewVoucher.vue'), meta: { title: '查看凭证', section: '凭证管理', roles: ['ADMIN', 'MANAGER', 'ACCOUNTANT', 'VIEWER'] } },
@@ -25,7 +25,9 @@ const routes = [
   { path: '/company-settings', name: 'CompanySettings', component: () => import('../views/CompanySettings.vue'), meta: { title: '公司设置', section: '系统', roles: ['ADMIN', 'MANAGER'] } },
   { path: '/bank-transaction', name: 'BankTransaction', component: () => import('../views/BankTransaction.vue'), meta: { title: '银行流水', section: '业务管理', roles: ['ADMIN', 'MANAGER', 'ACCOUNTANT'] } },
   { path: '/fixed-asset', name: 'FixedAsset', component: () => import('../views/FixedAsset.vue'), meta: { title: '固定资产', section: '业务管理', roles: ['ADMIN', 'MANAGER', 'ACCOUNTANT'] } },
-  { path: '/salary', name: 'SalaryManagement', component: () => import('../views/SalaryManagement.vue'), meta: { title: '工资管理', section: '业务管理', roles: ['ADMIN', 'MANAGER'] } }
+  { path: '/salary', name: 'SalaryManagement', component: () => import('../views/SalaryManagement.vue'), meta: { title: '工资管理', section: '业务管理', roles: ['ADMIN', 'MANAGER'] } },
+  { path: '/users', name: 'UserList', component: () => import('../views/UserList.vue'), meta: { title: '用户管理', section: '系统', roles: ['ADMIN'] } },
+  { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFound.vue'), meta: { public: true, title: '页面不存在' } }
 ]
 
 const router = createRouter({
@@ -37,11 +39,8 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   document.title = to.meta.title ? `${to.meta.title} · FIVA 财税` : 'FIVA 财税系统'
   if (to.meta.public) {
-    if (token && (to.path === '/login' || to.path === '/register')) {
-      next('/dashboard')
-    } else {
-      next()
-    }
+    if (token && to.name === 'Login') return next('/dashboard')
+    next()
   } else if (!token) {
     next('/login')
   } else if (to.meta.roles && !to.meta.roles.includes(getRole())) {

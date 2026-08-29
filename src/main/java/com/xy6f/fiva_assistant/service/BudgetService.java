@@ -39,12 +39,29 @@ public class BudgetService {
     public Budget getById(Long id) {
         Budget existing = budgetMapper.findById(id);
         if (existing == null) throw new RuntimeException("预算不存在: " + id);
+        if (!existing.getUserId().equals(UserContext.getUserId())) {
+            throw new RuntimeException("无权访问该预算");
+        }
         return existing;
     }
 
     public Budget create(Budget budget) {
+        if (budget.getMonth() == null || budget.getMonth() < 1 || budget.getMonth() > 12) {
+            throw new RuntimeException("月份必须在1-12之间");
+        }
+        if (budget.getYear() == null || budget.getYear() < 2000 || budget.getYear() > 2100) {
+            throw new RuntimeException("年份不合法");
+        }
+        Long userId = UserContext.getUserId();
+        List<Budget> existing = budgetMapper.findByUserIdAndYearAndMonthOrderByCreatedAtDesc(
+                userId, budget.getYear(), budget.getMonth());
+        boolean dup = existing.stream().anyMatch(b ->
+                budget.getDepartment() != null && budget.getDepartment().equals(b.getDepartment()));
+        if (dup) {
+            throw new RuntimeException("该部门" + budget.getYear() + "年" + budget.getMonth() + "月已有预算");
+        }
         budget.setUsedAmount(BigDecimal.ZERO);
-        budget.setUserId(UserContext.getUserId());
+        budget.setUserId(userId);
         log.info("Creating budget: {} {}-{}", budget.getDepartment(), budget.getYear(), budget.getMonth());
         budgetMapper.insert(budget);
         return budget;
@@ -71,6 +88,9 @@ public class BudgetService {
     }
 
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
+        Budget existing = budgetMapper.findById(id);
+        if (existing == null || !userId.equals(existing.getUserId())) throw new RuntimeException("预算不存在或无权访问");
         budgetMapper.deleteById(id);
     }
 

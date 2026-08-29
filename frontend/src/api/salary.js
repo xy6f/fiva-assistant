@@ -21,3 +21,7 @@ export function generatePayment(month) {
 export function deleteRecord(id) {
   return axios.delete(`${BASE}/${id}`)
 }
+
+export function exportSalaryExcel(month) {
+  return axios.get(`${BASE}/export/excel`, { params: { month }, responseType: 'blob' })
+}

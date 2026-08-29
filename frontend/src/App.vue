@@ -33,7 +33,11 @@
           <el-menu-item index="/ledger/trial-balance">科目余额表</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="/period-close" v-if="canSee('/period-close')"><el-icon><RefreshRight /></el-icon><span>期末结转</span></el-menu-item>
-        <el-menu-item index="/tax" v-if="canSee('/tax')"><el-icon><TrendCharts /></el-icon><span>税务测算</span></el-menu-item>
+        <el-sub-menu index="/tax" v-if="canSee('/tax')">
+          <template #title><el-icon><TrendCharts /></el-icon><span>税务</span></template>
+          <el-menu-item index="/tax">税务测算</el-menu-item>
+          <el-menu-item index="/tax/analysis">税务分析报告</el-menu-item>
+        </el-sub-menu>
         <el-menu-item index="/expense" v-if="canSee('/expense')"><el-icon><Ticket /></el-icon><span>费用报销</span></el-menu-item>
         <el-menu-item index="/contact" v-if="canSee('/contact')"><el-icon><User /></el-icon><span>客户/供应商</span></el-menu-item>
         <el-menu-item index="/report" v-if="canSee('/report')"><el-icon><Document /></el-icon><span>财务报表</span></el-menu-item>
@@ -42,6 +46,7 @@
         <el-menu-item index="/fixed-asset" v-if="canSee('/fixed-asset')"><el-icon><OfficeBuilding /></el-icon><span>固定资产</span></el-menu-item>
         <el-menu-item index="/salary" v-if="canSee('/salary')"><el-icon><UserFilled /></el-icon><span>工资管理</span></el-menu-item>
         <el-menu-item index="/chat" v-if="canSee('/chat')"><el-icon><ChatDotRound /></el-icon><span>智能助手</span></el-menu-item>
+        <el-menu-item index="/users" v-if="canSee('/users')"><el-icon><Avatar /></el-icon><span>用户管理</span></el-menu-item>
         <el-menu-item index="/company-settings" v-if="canSee('/company-settings')"><el-icon><Setting /></el-icon><span>公司设置</span></el-menu-item>
       </el-menu>
       <button class="sidebar-edge-toggle" type="button" @click="toggleSidebarCollapsed" :aria-label="sidebarCollapsed ? '展开侧栏' : '收起侧栏'" :title="sidebarCollapsed ? '展开侧栏' : '收起侧栏'">
@@ -105,7 +110,8 @@
             </div>
           </div>
           <div v-for="(msg, index) in aiMessages" :key="index" class="ai-message" :class="msg.role">
-            <div class="ai-bubble">{{ msg.content }}</div>
+            <div v-if="msg.role === 'assistant'" class="ai-bubble md-content" v-html="msg.html"></div>
+            <div v-else class="ai-bubble">{{ msg.content }}</div>
           </div>
         </div>
         <div class="ai-input-row">
@@ -122,6 +128,7 @@
 import { ref, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { streamChat } from './api/chat'
+import { renderMarkdown } from './utils/markdown'
 
 const route = useRoute()
 const router = useRouter()
@@ -207,8 +214,8 @@ function sendAiMessage() {
   if (!message || aiLoading.value) return
   aiInput.value = ''
   aiMessages.value.push({ role: 'user', content: message })
-  const assistant = { role: 'assistant', content: '' }
-  aiMessages.value.push(assistant)
+  aiMessages.value.push({ role: 'assistant', content: '', html: '' })
+  const idx = aiMessages.value.length - 1
   aiLoading.value = true
   scrollAiToBottom()
   streamChat(aiSessionId.value, message, {
@@ -217,12 +224,19 @@ function sendAiMessage() {
       localStorage.setItem('chat_session', sessionId)
     },
     onToken(token) {
-      assistant.content += token
+      const msg = aiMessages.value[idx]
+      msg.content += token
+      msg.html = renderMarkdown(msg.content)
       scrollAiToBottom()
     },
     onDone() { aiLoading.value = false },
     onError(error) {
-      assistant.content = assistant.content || `助手暂时不可用：${error}`
+      const safe = /SocketException|ConnectException|refused|timeout|reset/i.test(error)
+        ? '助手暂时不可用，请稍后再试'
+        : `助手暂时不可用：${error}`
+      const msg = aiMessages.value[idx]
+      msg.content = msg.content || safe
+      msg.html = renderMarkdown(msg.content)
       aiLoading.value = false
       scrollAiToBottom()
     }
@@ -442,6 +456,19 @@ html.theme-dark .el-popper.is-light .el-popper__arrow::before {
 .ai-message { display: flex; margin-bottom: 12px; }
 .ai-message.user { justify-content: flex-end; }
 .ai-bubble { max-width: 78%; padding: 12px 14px; border-radius: 10px; color: #26364f; line-height: 1.75; white-space: pre-wrap; background: #fff; box-shadow: 0 8px 22px rgba(17,32,50,.06); }
+.ai-bubble.md-content { white-space: normal; }
+.ai-bubble.md-content h1, .ai-bubble.md-content h2, .ai-bubble.md-content h3 { margin: 12px 0 6px; font-size: 15px; font-weight: 600; }
+.ai-bubble.md-content h1 { font-size: 17px; }
+.ai-bubble.md-content h3 { font-size: 14px; }
+.ai-bubble.md-content p { margin: 4px 0; }
+.ai-bubble.md-content ul, .ai-bubble.md-content ol { padding-left: 20px; margin: 6px 0; }
+.ai-bubble.md-content table { border-collapse: collapse; margin: 8px 0; width: 100%; }
+.ai-bubble.md-content th, .ai-bubble.md-content td { border: 1px solid rgba(0,0,0,.12); padding: 6px 10px; text-align: left; font-size: 13px; }
+.ai-bubble.md-content th { background: rgba(26,107,104,.08); font-weight: 600; }
+.ai-bubble.md-content code { background: rgba(0,0,0,.06); padding: 2px 5px; border-radius: 3px; font-size: 13px; }
+.ai-bubble.md-content pre { background: #1e293b; color: #e2e8f0; padding: 10px 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+.ai-bubble.md-content pre code { background: none; padding: 0; color: inherit; }
+.ai-bubble.md-content blockquote { border-left: 3px solid #1a6b68; padding-left: 10px; margin: 6px 0; color: #555; }
 .ai-message.user .ai-bubble { color: #fff; background: linear-gradient(135deg, #1a6b68, #209477); }
 .theme-dark .ai-bubble { color: var(--fiva-dark-text); background: rgba(255,255,255,.08); }
 .theme-dark .ai-message.user .ai-bubble { color: #fff; background: linear-gradient(135deg, #1a6b68, #209477); }

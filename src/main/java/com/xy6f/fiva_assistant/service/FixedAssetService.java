@@ -34,8 +34,9 @@ public class FixedAssetService {
     }
 
     public FixedAsset getById(Long id) {
+        Long userId = UserContext.getUserId();
         FixedAsset asset = fixedAssetMapper.findById(id);
-        if (asset == null) throw new RuntimeException("资产不存在");
+        if (asset == null || !userId.equals(asset.getUserId())) throw new RuntimeException("资产不存在或无权访问");
         return asset;
     }
 
@@ -81,6 +82,9 @@ public class FixedAssetService {
 
     @Transactional
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
+        FixedAsset asset = fixedAssetMapper.findById(id);
+        if (asset == null || !userId.equals(asset.getUserId())) throw new RuntimeException("资产不存在或无权访问");
         fixedAssetMapper.deleteById(id);
     }
 

@@ -38,8 +38,16 @@ public class ChatController {
         return ResponseEntity.ok(result);
     }
 
+    private static final int MAX_MESSAGE_LENGTH = 2000;
+
     @PostMapping("/send")
-    public ResponseEntity<ChatResponse> sendMessage(@RequestBody ChatRequest request) {
+    public ResponseEntity<?> sendMessage(@RequestBody ChatRequest request) {
+        if (request.getMessage() == null || request.getMessage().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "消息不能为空"));
+        }
+        if (request.getMessage().length() > MAX_MESSAGE_LENGTH) {
+            return ResponseEntity.badRequest().body(Map.of("error", "消息长度不能超过" + MAX_MESSAGE_LENGTH + "字"));
+        }
         ChatResponse response = chatService.chat(request.getSessionId(), request.getMessage());
         return ResponseEntity.ok(response);
     }
@@ -56,7 +64,13 @@ public class ChatController {
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<SseEmitter> streamChat(@RequestBody ChatRequest request) {
+    public ResponseEntity<?> streamChat(@RequestBody ChatRequest request) {
+        if (request.getMessage() == null || request.getMessage().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "消息不能为空"));
+        }
+        if (request.getMessage().length() > MAX_MESSAGE_LENGTH) {
+            return ResponseEntity.badRequest().body(Map.of("error", "消息长度不能超过" + MAX_MESSAGE_LENGTH + "字"));
+        }
         SseEmitter emitter = new SseEmitter(120_000L);
         chatService.chatStream(request.getSessionId(), request.getMessage(), emitter);
         return ResponseEntity.ok()

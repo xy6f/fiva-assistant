@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Slf4j
@@ -25,6 +26,9 @@ public class AlertService {
     private final AlertMapper alertMapper;
     private final BudgetMapper budgetMapper;
     private final UserMapper userMapper;
+
+    private final AtomicBoolean budgetCheckRunning = new AtomicBoolean(false);
+    private final AtomicBoolean taxCheckRunning = new AtomicBoolean(false);
 
     public List<Alert> listAll() {
         return alertMapper.findByUserIdOrderByCreatedAtDesc(UserContext.getUserId());
@@ -39,8 +43,9 @@ public class AlertService {
     }
 
     public void markAsRead(Long id) {
+        Long userId = UserContext.getUserId();
         Alert alert = alertMapper.findById(id);
-        if (alert == null) throw new RuntimeException("预警不存在: " + id);
+        if (alert == null || !userId.equals(alert.getUserId())) throw new RuntimeException("预警不存在或无权访问");
         alert.setStatus("READ");
         alert.setReadAt(LocalDateTime.now());
         alertMapper.update(alert);
@@ -56,14 +61,18 @@ public class AlertService {
     }
 
     public void markAsHandled(Long id) {
+        Long userId = UserContext.getUserId();
         Alert alert = alertMapper.findById(id);
-        if (alert == null) throw new RuntimeException("预警不存在: " + id);
+        if (alert == null || !userId.equals(alert.getUserId())) throw new RuntimeException("预警不存在或无权访问");
         alert.setStatus("HANDLED");
         alert.setReadAt(LocalDateTime.now());
         alertMapper.update(alert);
     }
 
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
+        Alert alert = alertMapper.findById(id);
+        if (alert == null || !userId.equals(alert.getUserId())) throw new RuntimeException("预警不存在或无权访问");
         alertMapper.deleteById(id);
     }
 
@@ -84,16 +93,32 @@ public class AlertService {
      * 检查预算预警（支持定时任务调用，userId为null时遍历所有用户）
      */
     public void checkBudgetAlerts() {
-        YearMonth current = YearMonth.now();
-        Long userId = UserContext.getUserId();
+        if (!budgetCheckRunning.compareAndSet(false, true)) {
+            log.debug("Budget check already running, skipping");
+            return;
+        }
+        try {
+            YearMonth current = YearMonth.now();
+            Long userId = UserContext.getUserId();
 
-        if (userId == null) {
-            // 定时任务场景：遍历所有用户
-            for (User user : userMapper.findAll()) {
-                checkBudgetAlertsForUser(user.getId(), current);
+            if (userId == null) {
+                // 定时任务场景：分页遍历所有用户，避免一次性加载全部
+                int page = 0;
+                int pageSize = 100;
+                while (true) {
+                    List<User> users = userMapper.findPage(page, pageSize);
+                    if (users.isEmpty()) break;
+                    for (User user : users) {
+                        checkBudgetAlertsForUser(user.getId(), current);
+                    }
+                    if (users.size() < pageSize) break;
+                    page++;
+                }
+            } else {
+                checkBudgetAlertsForUser(userId, current);
             }
-        } else {
-            checkBudgetAlertsForUser(userId, current);
+        } finally {
+            budgetCheckRunning.set(false);
         }
     }
 
@@ -150,21 +175,37 @@ public class AlertService {
      * 检查税务申报提醒（每月1-15日）
      */
     public void checkTaxDueAlert() {
-        LocalDate today = LocalDate.now();
-        if (today.getDayOfMonth() <= 15) {
-            Long userId = UserContext.getUserId();
-            String title = "税务申报提醒";
-            String content = String.format("本月税务申报截止日期为%d日，请及时完成申报。", 
-                    today.withDayOfMonth(today.lengthOfMonth()).getDayOfMonth());
+        if (!taxCheckRunning.compareAndSet(false, true)) {
+            log.debug("Tax check already running, skipping");
+            return;
+        }
+        try {
+            LocalDate today = LocalDate.now();
+            if (today.getDayOfMonth() <= 15) {
+                Long userId = UserContext.getUserId();
+                String title = "税务申报提醒";
+                String content = String.format("本月税务申报截止日期为%d日，请及时完成申报。", 
+                        today.withDayOfMonth(today.lengthOfMonth()).getDayOfMonth());
 
-            if (userId == null) {
-                // 定时任务场景：为所有用户创建
-                for (User user : userMapper.findAll()) {
-                    createTaxAlertForUser(user.getId(), title, content);
+                if (userId == null) {
+                    // 定时任务场景：分页遍历所有用户
+                    int page = 0;
+                    int pageSize = 100;
+                    while (true) {
+                        List<User> users = userMapper.findPage(page, pageSize);
+                        if (users.isEmpty()) break;
+                        for (User user : users) {
+                            createTaxAlertForUser(user.getId(), title, content);
+                        }
+                        if (users.size() < pageSize) break;
+                        page++;
+                    }
+                } else {
+                    createTaxAlertForUser(userId, title, content);
                 }
-            } else {
-                createTaxAlertForUser(userId, title, content);
             }
+        } finally {
+            taxCheckRunning.set(false);
         }
     }
 

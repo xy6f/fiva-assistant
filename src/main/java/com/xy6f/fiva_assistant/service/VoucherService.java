@@ -65,9 +65,7 @@ public class VoucherService {
             voucher.setVoucherNo(generateVoucherNo());
         }
         voucher.setUserId(UserContext.getUserId());
-        if (voucher.getStatus() == null || voucher.getStatus().isBlank()) {
-            voucher.setStatus("DRAFT");
-        }
+        voucher.setStatus("DRAFT");
         voucherMapper.insert(voucher);
         Voucher saved = voucher;
 
@@ -132,9 +130,6 @@ public class VoucherService {
         v.setCounterparty(updated.getCounterparty());
         v.setHasInvoice(updated.getHasInvoice());
         v.setInvoiceImageUrl(updated.getInvoiceImageUrl());
-        if (updated.getStatus() != null) {
-            v.setStatus(updated.getStatus());
-        }
         voucherMapper.update(v);
         Voucher saved = v;
 
@@ -162,10 +157,14 @@ public class VoucherService {
 
     @Transactional
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
         Voucher v = voucherMapper.findById(id);
-        if (v == null) return;
+        if (v == null || !userId.equals(v.getUserId())) throw new RuntimeException("凭证不存在或无权访问");
         if ("POSTED".equals(v.getStatus())) {
             throw new RuntimeException("已过账的凭证不可删除");
+        }
+        if ("PERIOD_CLOSING".equals(v.getType())) {
+            throw new RuntimeException("期末结转凭证不可直接删除，请先反结账");
         }
         assertPeriodOpen(v.getVoucherDate());
         voucherEntryMapper.deleteByVoucherId(id);
@@ -173,8 +172,9 @@ public class VoucherService {
     }
 
     public Voucher getById(Long id) {
+        Long userId = UserContext.getUserId();
         Voucher v = voucherMapper.findById(id);
-        if (v == null) throw new RuntimeException("凭证不存在");
+        if (v == null || !userId.equals(v.getUserId())) throw new RuntimeException("凭证不存在或无权访问");
         v.setEntries(getEntriesByVoucherId(v.getId()));
         return v;
     }
@@ -240,12 +240,12 @@ public class VoucherService {
      */
     @Transactional
     public Voucher submitForReview(Long id) {
+        Long userId = UserContext.getUserId();
         Voucher v = voucherMapper.findById(id);
-        if (v == null) throw new RuntimeException("凭证不存在");
+        if (v == null || !userId.equals(v.getUserId())) throw new RuntimeException("凭证不存在或无权访问");
         if (!"DRAFT".equals(v.getStatus())) {
             throw new RuntimeException("只有草稿状态可以提交审核");
         }
-        // 提交前校验借贷平衡
         List<VoucherEntry> entries = getEntriesByVoucherId(id);
         validateBalance(entries);
         v.setStatus("REVIEWED");
@@ -253,13 +253,11 @@ public class VoucherService {
         return v;
     }
 
-    /**
-     * 审核流程：审核通过 REVIEWED -> POSTED
-     */
     @Transactional
     public Voucher approve(Long id) {
+        Long userId = UserContext.getUserId();
         Voucher v = voucherMapper.findById(id);
-        if (v == null) throw new RuntimeException("凭证不存在");
+        if (v == null || !userId.equals(v.getUserId())) throw new RuntimeException("凭证不存在或无权访问");
         if (!"REVIEWED".equals(v.getStatus())) {
             throw new RuntimeException("只有已审核状态可以通过");
         }
@@ -268,13 +266,11 @@ public class VoucherService {
         return v;
     }
 
-    /**
-     * 审核流程：驳回 REVIEWED -> DRAFT
-     */
     @Transactional
     public Voucher reject(Long id) {
+        Long userId = UserContext.getUserId();
         Voucher v = voucherMapper.findById(id);
-        if (v == null) throw new RuntimeException("凭证不存在");
+        if (v == null || !userId.equals(v.getUserId())) throw new RuntimeException("凭证不存在或无权访问");
         if (!"REVIEWED".equals(v.getStatus())) {
             throw new RuntimeException("只有已审核状态可以驳回");
         }

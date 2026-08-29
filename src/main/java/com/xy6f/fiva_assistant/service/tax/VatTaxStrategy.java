@@ -34,11 +34,14 @@ public class VatTaxStrategy implements TaxCalcStrategy {
         BigDecimal vatRate;
         if (Boolean.TRUE.equals(input.getSmallScale())) {
             vatRate = engine.rate("VAT_SMALL_SCALE_RATE", new BigDecimal("0.03"));
-            BigDecimal exempt = engine.threshold("VAT_SMALL_SCALE_EXEMPT_ANNUAL", BigDecimal.ZERO);
-            BigDecimal taxableRevenue = revenue.subtract(exempt);
-            if (taxableRevenue.compareTo(BigDecimal.ZERO) < 0) taxableRevenue = BigDecimal.ZERO;
-            vatPayable = taxableRevenue.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);
-            input.setVatExemptAmount(revenue.subtract(taxableRevenue));
+            BigDecimal exemptThreshold = engine.threshold("VAT_SMALL_SCALE_EXEMPT_ANNUAL", new BigDecimal("300000"));
+            if (revenue.compareTo(exemptThreshold) <= 0) {
+                vatPayable = BigDecimal.ZERO;
+                input.setVatExemptAmount(revenue);
+            } else {
+                vatPayable = revenue.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);
+                input.setVatExemptAmount(BigDecimal.ZERO);
+            }
         } else {
             vatRate = engine.rate("VAT_GENERAL_RATE", new BigDecimal("0.13"));
             BigDecimal outputTax = revenue.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);

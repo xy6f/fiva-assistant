@@ -17,7 +17,7 @@
           <el-input v-model="form.username" placeholder="用户名（3-20个字符）" size="large" prefix-icon="User" />
         </el-form-item>
         <el-form-item prop="password">
-          <el-input v-model="form.password" type="password" placeholder="密码（至少6个字符）" size="large"
+          <el-input v-model="form.password" type="password" placeholder="密码（至少6位，含大小写字母和数字）" size="large"
                     prefix-icon="Lock" show-password />
         </el-form-item>
         <el-form-item prop="confirmPassword">
@@ -75,14 +75,37 @@ const validateConfirm = (rule, value, callback) => {
   }
 }
 
+const validatePasswordStrength = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入密码'))
+    return
+  }
+  if (value.length < 6) {
+    callback(new Error('密码至少6个字符'))
+    return
+  }
+  if (!/[A-Z]/.test(value)) {
+    callback(new Error('密码需包含至少一个大写字母'))
+    return
+  }
+  if (!/[a-z]/.test(value)) {
+    callback(new Error('密码需包含至少一个小写字母'))
+    return
+  }
+  if (!/[0-9]/.test(value)) {
+    callback(new Error('密码需包含至少一个数字'))
+    return
+  }
+  callback()
+}
+
 const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 3, max: 20, message: '长度需为3-20个字符', trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6个字符', trigger: 'blur' }
+    { required: true, trigger: 'blur', validator: validatePasswordStrength }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },

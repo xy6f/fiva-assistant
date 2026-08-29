@@ -31,8 +31,9 @@ public class TransactionService {
 
     @Transactional
     public Transaction update(Long id, Transaction updated) {
+        Long userId = UserContext.getUserId();
         Transaction t = transactionMapper.findById(id);
-        if (t == null) throw new RuntimeException("记录不存在");
+        if (t == null || !userId.equals(t.getUserId())) throw new RuntimeException("记录不存在或无权访问");
         t.setType(updated.getType());
         t.setAmount(updated.getAmount());
         t.setCategory(updated.getCategory());
@@ -45,12 +46,16 @@ public class TransactionService {
 
     @Transactional
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
+        Transaction t = transactionMapper.findById(id);
+        if (t == null || !userId.equals(t.getUserId())) throw new RuntimeException("记录不存在或无权访问");
         transactionMapper.deleteById(id);
     }
 
     public Transaction getById(Long id) {
+        Long userId = UserContext.getUserId();
         Transaction existing = transactionMapper.findById(id);
-        if (existing == null) throw new RuntimeException("记录不存在");
+        if (existing == null || !userId.equals(existing.getUserId())) throw new RuntimeException("记录不存在或无权访问");
         return existing;
     }
 

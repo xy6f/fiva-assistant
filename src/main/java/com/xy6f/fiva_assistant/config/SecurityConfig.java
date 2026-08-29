@@ -54,11 +54,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/**", "/api/auth/users/**").hasRole("ADMIN")
                 // 公司设置：ADMIN / MANAGER
                 .requestMatchers("/api/auth/company").hasAnyRole("ADMIN", "MANAGER")
+                // 工资属高度敏感数据：仅 ADMIN / MANAGER，VIEWER 与 ACCOUNTANT 均不可访问
+                .requestMatchers("/api/salary/**").hasAnyRole("ADMIN", "MANAGER")
                 // AI 问答对所有登录角色开放（含 VIEWER）
                 .requestMatchers("/api/chat/**").authenticated()
                 // 税务测算为纯计算/AI 咨询，不改动数据，VIEWER 可用
                 .requestMatchers("/api/tax/calculate", "/api/tax/suggestion",
                         "/api/tax/suggestion/stream", "/api/tax/analysis").authenticated()
+                // 费用、预算、银行流水、固定资产为敏感业务数据，VIEWER 不可读
+                .requestMatchers(HttpMethod.GET, "/api/expense/**", "/api/budget/**",
+                        "/api/bank-transaction/**", "/api/fixed-asset/**")
+                        .hasAnyRole("ADMIN", "MANAGER", "ACCOUNTANT")
                 // 其余写操作（POST/PUT/DELETE）需要业务角色，VIEWER 只读
                 .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole(WRITE_ROLES)
                 .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole(WRITE_ROLES)

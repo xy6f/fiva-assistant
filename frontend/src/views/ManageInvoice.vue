@@ -30,11 +30,11 @@
         </el-table-column>
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{row}">
-            <el-button size="small" type="warning" @click="handleVerify(row.id)" v-if="!row.verified">查验</el-button>
+            <el-button size="small" type="warning" @click="handleVerify(row.id)" v-if="canWrite() && !row.verified">查验</el-button>
             <el-button size="small" @click="showVerifyResult(row)" v-if="row.verified">查验结果</el-button>
             <el-button size="small" @click="showInvoiceDetail(row)">详情</el-button>
             <el-button size="small" type="primary" @click="showInvoiceImg(row)">图片</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row.id)" v-if="canWrite()">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -85,6 +85,7 @@
 import { ref, onMounted } from 'vue'
 import { getInvoices, deleteInvoice, verifyInvoice } from '../api/invoice'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { canWrite } from '../utils/auth'
 
 const invoices = ref([])
 const loading = ref(false)

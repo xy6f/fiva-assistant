@@ -21,7 +21,7 @@
           <div style="color:#909399;font-size:12px">支持 .xlsx / .xls / .csv 格式</div>
         </template>
       </el-upload>
-      <el-button type="primary" @click="handleImport" :loading="importing" style="margin-top:10px" :disabled="!selectedFile">
+      <el-button v-if="canWrite()" type="primary" @click="handleImport" :loading="importing" style="margin-top:10px" :disabled="!selectedFile">
         导入流水
       </el-button>
     </el-card>
@@ -36,11 +36,12 @@
             <el-option label="已匹配" value="MATCHED" />
             <el-option label="已忽略" value="IGNORED" />
           </el-select>
-          <el-button type="primary" @click="handleBatchMatch" :disabled="selectedRows.length === 0">
+          <el-button v-if="canWrite()" type="primary" @click="handleBatchMatch" :disabled="selectedRows.length === 0">
             批量匹配 ({{ selectedRows.length }})
           </el-button>
         </div>
         <el-button @click="loadData">刷新</el-button>
+        <el-button type="success" @click="handleExport">导出Excel</el-button>
       </div>
 
       <el-table :data="transactions" stripe v-loading="loading" @selection-change="handleSelectionChange">
@@ -70,11 +71,11 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{row}">
-            <template v-if="row.status === 'UNMATCHED'">
+            <template v-if="row.status === 'UNMATCHED' && canWrite()">
               <el-button size="small" type="primary" @click="handleMatch(row.id)">匹配</el-button>
               <el-button size="small" @click="handleIgnore(row.id)">忽略</el-button>
             </template>
-            <el-button size="small" type="danger" @click="handleDelete(row.id)" v-if="row.status !== 'MATCHED'">删除</el-button>
+            <el-button v-if="canWrite() && row.status !== 'MATCHED'" size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
             <el-tag v-if="row.status === 'MATCHED'" size="small" type="info">凭证#{{ row.voucherId }}</el-tag>
           </template>
         </el-table-column>
@@ -86,7 +87,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { importFile, getTransactions, matchTransaction, batchMatch, ignoreTransaction, deleteTransaction } from '../api/bankTransaction'
+import { importFile, getTransactions, matchTransaction, batchMatch, ignoreTransaction, deleteTransaction, exportBankTransactionExcel } from '../api/bankTransaction'
+import { downloadBlob } from '../utils/download'
+import { canWrite } from '../utils/auth'
 
 const transactions = ref([])
 const loading = ref(false)
@@ -180,6 +183,17 @@ async function handleDelete(id) {
     ElMessage.success('删除成功')
     loadData()
   } catch (e) { /* cancelled */ }
+}
+
+async function handleExport() {
+  try {
+    const { data: blob } = await exportBankTransactionExcel(statusFilter.value)
+    const name = `银行流水_${statusFilter.value || '全部'}.xlsx`
+    downloadBlob(blob, name)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  }
 }
 
 onMounted(() => loadData())

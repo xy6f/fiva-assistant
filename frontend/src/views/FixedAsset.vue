@@ -3,8 +3,8 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="margin:0">固定资产管理</h2>
       <div>
-        <el-button type="warning" @click="showDepreciateDialog">计提折旧</el-button>
-        <el-button type="primary" @click="showCreateDialog">新增资产</el-button>
+        <el-button v-if="canWrite()" type="warning" @click="showDepreciateDialog">计提折旧</el-button>
+        <el-button v-if="canWrite()" type="primary" @click="showCreateDialog">新增资产</el-button>
       </div>
     </div>
 
@@ -37,8 +37,8 @@
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{row}">
-            <el-button size="small" @click="showEditDialog(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
+            <el-button v-if="canWrite()" size="small" @click="showEditDialog(row)">编辑</el-button>
+            <el-button v-if="canWrite()" size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -108,6 +108,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAssets, createAsset, updateAsset, deleteAsset, depreciate } from '../api/fixedAsset'
+import { canWrite } from '../utils/auth'
 
 const assets = ref([])
 const loading = ref(false)

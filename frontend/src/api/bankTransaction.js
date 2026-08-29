@@ -27,3 +27,7 @@ export function ignoreTransaction(id) {
 export function deleteTransaction(id) {
   return axios.delete(`${BASE}/${id}`)
 }
+
+export function exportBankTransactionExcel(status) {
+  return axios.get(`${BASE}/export/excel`, { params: status ? { status } : {}, responseType: 'blob' })
+}

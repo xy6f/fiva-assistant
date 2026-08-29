@@ -2,7 +2,7 @@
   <div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h2 style="margin:0">客户/供应商管理</h2>
-      <el-button type="primary" @click="openForm">新增联系人</el-button>
+      <el-button type="primary" @click="openForm" v-if="canWrite()">新增联系人</el-button>
     </div>
 
     <!-- 筛选 -->
@@ -40,8 +40,8 @@
         <el-table-column prop="address" label="地址" min-width="180" show-overflow-tooltip />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="openForm(row)">编辑</el-button>
-            <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+            <el-button size="small" @click="openForm(row)" v-if="canWrite()">编辑</el-button>
+            <el-button size="small" type="danger" plain @click="handleDelete(row)" v-if="canWrite()">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -96,6 +96,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getContactList, createContact, updateContact, deleteContact } from '../api/contact'
+import { canWrite } from '../utils/auth'
 
 const list = ref([])
 const loading = ref(false)

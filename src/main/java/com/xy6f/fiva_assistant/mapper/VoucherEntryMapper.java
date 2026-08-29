@@ -66,4 +66,7 @@ public interface VoucherEntryMapper {
 
     @Delete("DELETE FROM t_voucher_entry WHERE id = #{id}")
     int deleteById(Long id);
+
+    @Select("SELECT COUNT(*) > 0 FROM t_voucher_entry WHERE account_id = #{accountId}")
+    boolean existsByAccountId(Long accountId);
 }

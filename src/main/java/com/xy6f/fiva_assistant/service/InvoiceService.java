@@ -166,8 +166,9 @@ public class InvoiceService {
     }
 
     public Invoice updateInvoice(Long id, Invoice updated) {
+        Long userId = UserContext.getUserId();
         Invoice invoice = invoiceMapper.findById(id);
-        if (invoice == null) throw new RuntimeException("发票不存在");
+        if (invoice == null || !userId.equals(invoice.getUserId())) throw new RuntimeException("发票不存在或无权访问");
         invoice.setInvoiceNo(updated.getInvoiceNo());
         invoice.setInvoiceDate(updated.getInvoiceDate());
         invoice.setSellerName(updated.getSellerName());
@@ -181,8 +182,9 @@ public class InvoiceService {
     }
 
     public Invoice getInvoice(Long id) {
+        Long userId = UserContext.getUserId();
         Invoice invoice = invoiceMapper.findById(id);
-        if (invoice == null) throw new RuntimeException("发票不存在");
+        if (invoice == null || !userId.equals(invoice.getUserId())) throw new RuntimeException("发票不存在或无权访问");
         return invoice;
     }
 
@@ -191,6 +193,9 @@ public class InvoiceService {
     }
 
     public void deleteInvoice(Long id) {
+        Long userId = UserContext.getUserId();
+        Invoice invoice = invoiceMapper.findById(id);
+        if (invoice == null || !userId.equals(invoice.getUserId())) throw new RuntimeException("发票不存在或无权访问");
         invoiceMapper.deleteById(id);
     }
 

@@ -62,7 +62,8 @@
             <p>可以询问税负、发票风险、利润波动、预算执行和经营摘要。</p>
           </div>
           <div v-for="(msg, idx) in messages" :key="idx" class="chat-message" :class="msg.role">
-            <div class="chat-bubble" v-html="msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content"></div>
+            <div v-if="msg.role === 'assistant'" class="chat-bubble md-content" v-html="renderMarkdown(msg.content)"></div>
+            <div v-else class="chat-bubble">{{ msg.content }}</div>
             <span v-if="msg.streaming" class="typing-cursor"></span>
           </div>
         </div>
@@ -79,6 +80,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { streamChat, getHistory, clearHistory, getAiMetrics } from '../api/chat'
+import { renderMarkdown } from '../utils/markdown'
 import { ElMessage } from 'element-plus'
 
 const sessionId = ref(localStorage.getItem('chat_session') || '')
@@ -141,13 +143,6 @@ const capabilities = [
   { title: '现金压力', desc: '预测短期现金风险', prompt: '请预测未来一个月现金流压力，并列出关注指标。' }
 ]
 
-function renderMarkdown(text) {
-  if (!text) return ''
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^-\s*(.+)$/gm, '<div class="md-line">• $1</div>')
-    .replace(/(\d+)\.\s*/g, '<br><strong>$1.</strong> ')
-}
 function scrollToBottom() {
   nextTick(() => {
     if (messageBoxRef.value) messageBoxRef.value.scrollTop = messageBoxRef.value.scrollHeight
@@ -251,6 +246,16 @@ async function clearChat() {
 .chat-message.user { justify-content: flex-end; }
 .chat-bubble { max-width: 78%; padding: 12px 14px; border-radius: 10px; color: #26364f; line-height: 1.75; white-space: pre-wrap; background: #fff; box-shadow: 0 8px 22px rgba(17,32,50,.06); }
 .chat-message.user .chat-bubble { color: #fff; background: linear-gradient(135deg, #1a6b68, #209477); }
+.md-content :deep(p) { margin: 6px 0; }
+.md-content :deep(ul), .md-content :deep(ol) { margin: 6px 0; padding-left: 20px; }
+.md-content :deep(li) { margin: 3px 0; }
+.md-content :deep(strong) { color: #1a6b68; }
+.md-content :deep(h1), .md-content :deep(h2), .md-content :deep(h3) { margin: 12px 0 6px; color: #172033; }
+.md-content :deep(code) { background: #f0f4f8; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+.md-content :deep(pre) { background: #1a2332; color: #e8e8e8; padding: 12px; border-radius: 6px; overflow-x: auto; }
+.md-content :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.md-content :deep(th), .md-content :deep(td) { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; font-size: 13px; }
+.md-content :deep(th) { background: #f7fafc; font-weight: 600; }
 .typing-cursor { width: 2px; height: 18px; background: #1a6b68; animation: blink 1s infinite; }
 .chat-input-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; }
 @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }

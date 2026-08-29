@@ -46,8 +46,9 @@ public class VoucherTemplateService {
      * 获取单个模板
      */
     public VoucherTemplate getById(Long id) {
+        Long userId = UserContext.getUserId();
         VoucherTemplate template = templateMapper.findById(id);
-        if (template == null) throw new RuntimeException("模板不存在: " + id);
+        if (template == null || !userId.equals(template.getUserId())) throw new RuntimeException("模板不存在或无权访问");
         return template;
     }
 
@@ -81,6 +82,9 @@ public class VoucherTemplateService {
      */
     @Transactional
     public void delete(Long id) {
+        Long userId = UserContext.getUserId();
+        VoucherTemplate template = templateMapper.findById(id);
+        if (template == null || !userId.equals(template.getUserId())) throw new RuntimeException("模板不存在或无权访问");
         templateMapper.deleteById(id);
     }
 
