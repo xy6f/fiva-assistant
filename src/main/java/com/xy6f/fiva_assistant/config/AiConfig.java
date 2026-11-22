@@ -1,7 +1,6 @@
 package com.xy6f.fiva_assistant.config;
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +8,10 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
+/**
+ * AI 模型配置。
+ * 文本对话模型与流式模型已迁移至 Python LangChain 服务（ai-agent），Java 侧仅保留 OCR 使用的视觉模型。
+ */
 @Configuration
 public class AiConfig {
 
@@ -31,39 +34,8 @@ public class AiConfig {
     private String visionModel;
 
     /**
-     * Text chat model (DeepSeek)
-     */
-    @Bean
-    @Qualifier("chatModel")
-    public OpenAiChatModel chatModel() {
-        return OpenAiChatModel.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .modelName(modelName)
-                .timeout(Duration.ofSeconds(120))
-                .maxRetries(2)
-                .logRequests(true)
-                .logResponses(true)
-                .build();
-    }
-
-    /**
-     * Streaming chat model for SSE output
-     */
-    @Bean
-    @Qualifier("streamingChatModel")
-    public OpenAiStreamingChatModel streamingChatModel() {
-        return OpenAiStreamingChatModel.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .modelName(modelName)
-                .timeout(Duration.ofSeconds(120))
-                .build();
-    }
-
-    /**
      * Vision model for OCR (supports image input)
-     * Fallback to chatModel if vision config is not set
+     * Fallback to deepseek config if vision config is not set
      */
     @Bean
     @Qualifier("visionModel")

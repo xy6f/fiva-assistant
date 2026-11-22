@@ -37,6 +37,13 @@ build/
 frontend/node_modules/
 frontend/dist/
 
+# === AI Agent (Python LangChain) ===
+ai-agent/.env
+ai-agent/.venv/
+ai-agent/**/__pycache__/
+ai-agent/**/*.pyc
+ai-agent/.pytest_cache/
+
 # === Sensitive Config ===
 application-dev.properties
 application-local.properties

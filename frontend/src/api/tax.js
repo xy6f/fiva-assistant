@@ -17,7 +17,8 @@ export function getTaxSuggestion(data) {
 export function streamTaxSuggestion(data, { onToken, onDone, onError }) {
   const controller = new AbortController()
 
-  const backendUrl = import.meta.env.DEV ? 'http://localhost:8080' : ''
+  // 税负 AI 已迁移至 Python LangChain 服务（ai-agent，端口 8001），统一走 vite 代理
+  const backendUrl = ''
   const token = localStorage.getItem('token')
 
   fetch(`${backendUrl}/api/tax/suggestion/stream`, {
@@ -36,6 +37,18 @@ export function streamTaxSuggestion(data, { onToken, onDone, onError }) {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
+    // 标准 SSE 解析(同 chat.js):多行 data 以 \n 连接,保留 token 中的换行
+    let eventName = null
+    let dataLines = []
+    const dispatchEvent = () => {
+      if (eventName === null && dataLines.length === 0) return
+      const data = dataLines.join('\n')
+      if (eventName === 'token') onToken?.(data)
+      else if (eventName === 'done') onDone?.()
+      else if (eventName === 'error') onError?.(data)
+      eventName = null
+      dataLines = []
+    }
 
     while (true) {
       const { done, value } = await reader.read()
@@ -45,19 +58,16 @@ export function streamTaxSuggestion(data, { onToken, onDone, onError }) {
       const lines = buffer.split(/\r?\n/)
       buffer = lines.pop() || ''
 
-      let currentEvent = null
       for (const line of lines) {
+        if (line === '') { dispatchEvent(); continue }
         if (line.startsWith('event:')) {
-          currentEvent = line.slice(6).trim()
+          eventName = line.slice(6).trim()
         } else if (line.startsWith('data:')) {
-          const data = line.slice(5).trim()
-          if (currentEvent === 'token') onToken?.(data)
-          else if (currentEvent === 'done') onDone?.()
-          else if (currentEvent === 'error') onError?.(data)
-          currentEvent = null
+          dataLines.push(line.slice(5).replace(/^ /, ''))
         }
       }
     }
+    dispatchEvent()
     onDone?.()
   }).catch(err => {
     if (err.name !== 'AbortError') onError?.(err.message)
@@ -75,7 +85,8 @@ export function streamTaxSuggestion(data, { onToken, onDone, onError }) {
 export function streamTaxAnalysis(data, { onToken, onDone, onError }) {
   const controller = new AbortController()
 
-  const backendUrl = import.meta.env.DEV ? 'http://localhost:8080' : ''
+  // 税负 AI 已迁移至 Python LangChain 服务（ai-agent，端口 8001），统一走 vite 代理
+  const backendUrl = ''
   const token = localStorage.getItem('token')
 
   fetch(`${backendUrl}/api/tax/analysis`, {
@@ -94,6 +105,18 @@ export function streamTaxAnalysis(data, { onToken, onDone, onError }) {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
+    // 标准 SSE 解析(同 chat.js):多行 data 以 \n 连接,保留 token 中的换行
+    let eventName = null
+    let dataLines = []
+    const dispatchEvent = () => {
+      if (eventName === null && dataLines.length === 0) return
+      const data = dataLines.join('\n')
+      if (eventName === 'token') onToken?.(data)
+      else if (eventName === 'done') onDone?.()
+      else if (eventName === 'error') onError?.(data)
+      eventName = null
+      dataLines = []
+    }
 
     while (true) {
       const { done, value } = await reader.read()
@@ -103,19 +126,16 @@ export function streamTaxAnalysis(data, { onToken, onDone, onError }) {
       const lines = buffer.split(/\r?\n/)
       buffer = lines.pop() || ''
 
-      let currentEvent = null
       for (const line of lines) {
+        if (line === '') { dispatchEvent(); continue }
         if (line.startsWith('event:')) {
-          currentEvent = line.slice(6).trim()
+          eventName = line.slice(6).trim()
         } else if (line.startsWith('data:')) {
-          const data = line.slice(5).trim()
-          if (currentEvent === 'token') onToken?.(data)
-          else if (currentEvent === 'done') onDone?.()
-          else if (currentEvent === 'error') onError?.(data)
-          currentEvent = null
+          dataLines.push(line.slice(5).replace(/^ /, ''))
         }
       }
     }
+    dispatchEvent()
     onDone?.()
   }).catch(err => {
     if (err.name !== 'AbortError') onError?.(err.message)

@@ -38,7 +38,8 @@ function renderBlock(block) {
   const hrMatch = block.match(/^(?:---+|\*\*\*+|___+)\s*$/)
   if (hrMatch) return '<hr>'
 
-  const headingMatch = block.match(/^(#{1,6})\s+(.+)$/)
+  // 中文模型常输出 "###标题"(井号后无空格),这里允许省略空格
+  const headingMatch = block.match(/^(#{1,6})\s*(.+)$/)
   if (headingMatch) {
     const level = headingMatch[1].length
     return '<h' + level + '>' + renderInline(escapeHtml(headingMatch[2])) + '</h' + level + '>'
@@ -54,9 +55,12 @@ function renderBlock(block) {
     return '<blockquote>' + renderBlocks(inner) + '</blockquote>'
   }
 
-  if (/^[-*+]\s/.test(block)) {
-    const items = block.split('\n').filter(l => /^[-*+]\s/.test(l))
-    return '<ul>' + items.map(l => '<li>' + renderInline(escapeHtml(l.replace(/^[-*+]\s+/, ''))) + '</li>').join('') + '</ul>'
+  // 中文模型常输出 "-项目"(减号后无空格),这里对减号允许省略空格(排除负数开头如 "-5,000")
+  const isUlBlock = /^[-*+]\s/.test(block) || /^-(?!\d)/.test(block)
+  if (isUlBlock) {
+    const isItem = (l) => /^[-*+]\s/.test(l) || /^-(?!\d)/.test(l)
+    const items = block.split('\n').filter(isItem)
+    return '<ul>' + items.map(l => '<li>' + renderInline(escapeHtml(l.replace(/^[-*+]\s*/, ''))) + '</li>').join('') + '</ul>'
   }
 
   if (/^\d+\.\s/.test(block)) {
@@ -70,22 +74,29 @@ function renderBlock(block) {
   }
 
   const lines = block.split('\n')
-  const paragraphs = []
+  let html = ''
   let current = []
-  for (const line of lines) {
-    if (line.trim() === '') {
-      if (current.length) paragraphs.push(current.join('\n'))
+  const flush = () => {
+    if (current.length) {
+      html += '<p>' + renderInline(escapeHtml(current.join('\n').replace(/\n/g, ' '))) + '</p>'
       current = []
+    }
+  }
+  for (const line of lines) {
+    // 中文模型常把标题与正文用单个换行分隔,行内遇到标题标记时单独成块
+    const inlineHeading = line.match(/^(#{1,6})\s*(\S.*)$/)
+    if (inlineHeading) {
+      flush()
+      const lv = inlineHeading[1].length
+      html += '<h' + lv + '>' + renderInline(escapeHtml(inlineHeading[2])) + '</h' + lv + '>'
+    } else if (line.trim() === '') {
+      flush()
     } else {
       current.push(line)
     }
   }
-  if (current.length) paragraphs.push(current.join('\n'))
-
-  if (paragraphs.length <= 1) {
-    return '<p>' + renderInline(escapeHtml(block.replace(/\n/g, ' '))) + '</p>'
-  }
-  return paragraphs.map(p => '<p>' + renderInline(escapeHtml(p.replace(/\n/g, ' '))) + '</p>').join('')
+  flush()
+  return html || ('<p>' + renderInline(escapeHtml(block.replace(/\n/g, ' '))) + '</p>')
 }
 
 function renderBlocks(text) {

@@ -3,13 +3,18 @@ package com.xy6f.fiva_assistant.controller;
 import com.xy6f.fiva_assistant.dto.TaxCalculation;
 import com.xy6f.fiva_assistant.service.TaxService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * 税务测算接口。
+ * AI 税负建议/深度分析（/suggestion*、/analysis）已迁移至 Python LangChain 服务（ai-agent，端口 8001）。
+ */
 @RestController
 @RequestMapping("/api/tax")
 @RequiredArgsConstructor
@@ -25,29 +30,5 @@ public class TaxController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-    }
-
-    @PostMapping("/suggestion")
-    public ResponseEntity<?> getSuggestion(@RequestBody TaxCalculation calc) {
-        try {
-            String suggestion = taxService.getAiSuggestion(calc);
-            return ResponseEntity.ok(Map.of("success", true, "data", suggestion));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PostMapping(value = "/suggestion/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamSuggestion(@RequestBody TaxCalculation calc) {
-        SseEmitter emitter = new SseEmitter(120_000L);
-        taxService.getAiSuggestionStream(calc, emitter);
-        return emitter;
-    }
-
-    @PostMapping(value = "/analysis", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamAnalysis(@RequestBody TaxCalculation calc) {
-        SseEmitter emitter = new SseEmitter(180_000L);
-        taxService.getTaxAnalysisStream(calc, emitter);
-        return emitter;
     }
 }

@@ -4,6 +4,8 @@
 
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776ab.svg)](https://www.python.org/)
+[![LangChain](https://img.shields.io/badge/LangChain-LangGraph-1c3c3c.svg)](https://github.com/langchain-ai/langchain)
 [![Vue](https://img.shields.io/badge/Vue-3.4-42b883.svg)](https://vuejs.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8-4479a1.svg)](https://www.mysql.com/)
 [![LangChain4j](https://img.shields.io/badge/LangChain4j-1.13.0-blue.svg)](https://github.com/langchain4j/langchain4j)
@@ -12,7 +14,7 @@
 
 ## ✨ 核心特性
 
-- 🤖 **AI 智能助手**：基于 LangChain4j 接入 DeepSeek 大模型，支持 SSE 流式对话、自然语言查账（AI 可自主查询真实账目数据）与经营分析。
+- 🤖 **AI 智能助手**：对话 Agent 与税负 AI 由独立的 Python LangChain 服务（`ai-agent/`，LangGraph ReAct 工具循环）接入 DeepSeek 大模型，支持 SSE 流式对话、自然语言查账（AI 可自主查询真实账目数据）与税务筹划建议。
 - 🧾 **发票 AI 识别（OCR）**：接入通义千问视觉模型，上传发票图片自动识别票面信息、智能查验、一键生成凭证。
 - 📒 **智能记账**：会计科目模板、凭证模板、凭证自动生成、凭证编号防冲突（序列表）。
 - 📊 **财务报告**：总账、明细账、试算平衡表、资产负债表、利润表自动出具，支持 Excel / PDF 导出。
@@ -27,7 +29,8 @@
 | 层次 | 技术 |
 |---|---|
 | 后端 | Java 17 · Spring Boot 4.1 · Spring Security · Spring MVC · MyBatis 4 · JWT (jjwt) |
-| AI | LangChain4j 1.13 · DeepSeek（文本对话）· 通义千问视觉模型（发票 OCR） |
+| AI（对话/税负） | Python 3.10+ · FastAPI · LangChain（langchain-openai）· LangGraph（ReAct） · DeepSeek |
+| AI（发票 OCR） | LangChain4j 1.13 · 通义千问视觉模型 |
 | 数据 | MySQL 8 · 阿里云 OSS（文件存储） |
 | 导出 | Apache POI（Excel）· OpenPDF（PDF） |
 | 前端 | Vue 3 · Vite 6 · Element Plus 2.8 · ECharts 5 · Vue Router 4 · Axios · marked · DOMPurify |
@@ -38,6 +41,12 @@
 ```
 fiva-assistant/
 ├── .github/workflows/ci.yml   # CI：后端编译 + 单元测试 + 前端构建
+├── ai-agent/                  # Python LangChain AI 服务（对话 Agent + 税负 AI，端口 8001）
+│   ├── app/agent/             #   LangGraph ReAct Agent、8 个只读账务工具、会话记忆、系统提示词
+│   ├── app/routers/           #   /api/chat/* 与 /api/tax AI 端点（契约与原 Java 版一致）
+│   ├── app/services/          #   编排：落库、AI 调用埋点、错误脱敏
+│   ├── tests/                 #   纯逻辑单元测试（pytest）
+│   └── .env                   #   本地配置（不入库，参考 .env.example）
 ├── docs/                      # 文档（商业计划书、演示脚本、优化计划等）
 ├── frontend/                  # Vue 3 + Vite 前端
 │   ├── src/api/               #   接口封装
@@ -47,14 +56,13 @@ fiva-assistant/
 │   ├── init_data.sql          #   完整初始化：建库 + 建表 + 演示数据
 │   ├── fiva_assistant_full.sql#   全量导出（含数据）
 │   └── V2__optimization.sql   #   优化新增表（科目模板/税率规则/AI 日志/审计日志/序列）
-├── src/                       # Spring Boot 后端
+├── src/                       # Spring Boot 后端（业务模块 + 发票 OCR 视觉模型）
 │   ├── main/java/com/xy6f/fiva_assistant/
-│   │   ├── ai/                #   AI 助手与数据查询工具
-│   │   ├── controller/        #   20 个 REST API 控制器
-│   │   ├── service/           #   22 个业务服务模块
+│   │   ├── controller/        #   REST API 控制器
+│   │   ├── service/           #   业务服务模块
 │   │   ├── mapper/            #   MyBatis 数据访问层
 │   │   ├── model/             #   实体模型
-│   │   ├── config/            #   安全 / OSS / CORS / AI 配置
+│   │   ├── config/            #   安全 / OSS / CORS / AI（视觉模型）配置
 │   │   ├── aspect/            #   审计日志切面
 │   │   └── util/              #   Excel / PDF / JWT 工具
 │   └── resources/             #   application.properties
@@ -69,6 +77,7 @@ fiva-assistant/
 ### 环境要求
 
 - JDK 17+
+- Python 3.10+（AI 对话/税负服务）
 - Maven 3.9+（或直接使用项目自带的 `mvnw`）
 - Node.js 20+、npm
 - MySQL 8+
@@ -96,14 +105,27 @@ mysql -u root -p fiva_assistant < sql/V2__optimization.sql
 | 配置项 | 说明 |
 |---|---|
 | `spring.datasource.url / username / password` | MySQL 连接（默认 `localhost:3306/fiva_assistant`，账号 `root`） |
-| `ai.deepseek.api-key` | DeepSeek API Key（AI 智能问答） |
 | `ai.vision.api-key` | 通义千问 DashScope API Key（发票 OCR） |
 | `aliyun.oss.access-key-id / secret` | 阿里云 OSS 凭证（发票/文件存储） |
 | `jwt.secret` | JWT 签名密钥，请设置为足够长的随机字符串 |
 
 > 敏感配置约定存放在 `application-dev.properties`（已被 `.gitignore` 忽略，不会误提交）。
 
-### 3. 启动后端
+### 3. 配置并启动 AI 服务（Python LangChain）
+
+对话 Agent（`/api/chat/*`）与税负 AI（`/api/tax/suggestion*`、`/api/tax/analysis`）由 `ai-agent/` 提供：
+
+```bash
+cd ai-agent
+py -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt   # Windows；Linux/macOS 为 .venv/bin/python
+copy .env.example .env                                     # 填入 DB / DeepSeek / jwt.secret（与后端保持一致）
+.venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+```
+
+AI 服务默认运行在 `http://localhost:8001`，健康检查 `/health`。详细说明见 [ai-agent/README.md](ai-agent/README.md)。
+
+### 4. 启动 Java 后端
 
 ```bash
 ./mvnw spring-boot:run        # Linux / macOS
@@ -112,7 +134,7 @@ mvnw.cmd spring-boot:run      # Windows
 
 后端默认运行在 `http://localhost:8080`。
 
-### 4. 启动前端
+### 5. 启动前端
 
 ```bash
 cd frontend
@@ -136,6 +158,13 @@ npm run dev
 
 ```bash
 ./mvnw -B test "-Dtest=OcrResultParserTest"
+```
+
+- **AI 服务单元测试**（不依赖数据库/大模型）：
+
+```bash
+cd ai-agent
+.venv\Scripts\python -m pytest tests/
 ```
 
 - **端到端（E2E）测试脚本**：位于 `tests/`，用于验证登录、仪表盘、发票、税务、AI 聊天等完整流程。

@@ -100,23 +100,48 @@
           </div>
           <el-button class="icon-tool ai-close" circle size="small" @click="aiDrawerOpen = false"><el-icon><Close /></el-icon></el-button>
         </div>
-        <div class="ai-messages" ref="aiMessagesRef">
-          <div v-if="aiMessages.length === 0" class="ai-empty">
-            <strong>选择一个问题开始</strong>
-            <div class="ai-question-marquee">
-              <div class="ai-question-track">
-                <button v-for="(q, index) in rollingQuestions" :key="`${q}-${index}`" type="button" @click="sendQuick(q)">{{ q }}</button>
+        <div class="ai-messages-wrap">
+          <div class="ai-messages" ref="aiMessagesRef" @scroll.passive="onAiScroll">
+            <div v-if="aiMessages.length === 0" class="ai-empty">
+              <strong>选择一个问题开始</strong>
+              <div class="ai-question-marquee">
+                <div class="ai-question-track">
+                  <button v-for="(q, index) in rollingQuestions" :key="`${q}-${index}`" type="button" @click="sendQuick(q)">{{ q }}</button>
+                </div>
+              </div>
+            </div>
+            <div v-for="(msg, index) in aiMessages" :key="index" class="ai-message" :class="msg.role">
+              <div v-if="msg.role === 'assistant' && msg.thinking && !msg.content" class="thinking-bubble">
+                <span class="thinking-dots"><i></i><i></i><i></i></span>
+                <span class="thinking-text">{{ msg.thinkingText || '正在思考…' }}</span>
+              </div>
+              <div v-else-if="msg.role === 'assistant'" class="assistant-text md-content" v-html="msg.html"></div>
+              <div v-else class="ai-bubble">{{ msg.content }}</div>
+              <span v-if="msg.streaming && msg.content" class="typing-cursor"></span>
+              <span v-if="msg.stopped" class="stopped-tag">已中断</span>
+              <div v-if="msg.role === 'assistant' && msg.toolSteps?.length" class="tool-status-line">
+                <span v-if="msg.streaming" class="thinking-dots"><i></i><i></i><i></i></span>
+                <span>{{ msg.streaming ? ('正在' + msg.toolSteps[msg.toolSteps.length - 1] + '…') : ('已查询: ' + msg.toolSteps.join('、')) }}</span>
               </div>
             </div>
           </div>
-          <div v-for="(msg, index) in aiMessages" :key="index" class="ai-message" :class="msg.role">
-            <div v-if="msg.role === 'assistant'" class="ai-bubble md-content" v-html="msg.html"></div>
-            <div v-else class="ai-bubble">{{ msg.content }}</div>
-          </div>
+          <button v-if="aiShowScrollBtn" class="scroll-bottom-btn" type="button" aria-label="回到底部" title="回到底部" @click="scrollAiToBottomForce">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14" /><path d="M19 12l-7 7-7-7" /></svg>
+          </button>
         </div>
         <div class="ai-input-row">
-          <el-input v-model="aiInput" placeholder="输入问题，例如：分析本月利润变化" @keyup.enter="sendAiMessage" :disabled="aiLoading" />
-          <el-button type="primary" @click="sendAiMessage" :loading="aiLoading">发送</el-button>
+          <el-input v-model="aiInput" placeholder="输入问题，例如：分析本月利润变化" @keyup.enter="sendAiMessage" />
+          <button
+            class="send-toggle"
+            :class="{ 'is-active': !!aiInput.trim() && !aiLoading, 'is-stop': aiLoading }"
+            type="button"
+            :aria-label="aiLoading ? '停止生成' : '发送'"
+            :title="aiLoading ? '停止生成' : '发送'"
+            @click="onSendToggle"
+          >
+            <svg v-if="!aiLoading" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></svg>
+            <span v-else class="stop-square"></span>
+          </button>
         </div>
       </div>
     </el-dialog>
@@ -144,6 +169,25 @@ const aiLoading = ref(false)
 const aiMessages = ref([])
 const aiSessionId = ref(localStorage.getItem('chat_session') || '')
 const aiMessagesRef = ref(null)
+const aiAbortController = ref(null)
+// 自动跟随:用户在底部时才随流式滚动;上翻阅读历史时暂停跟随并显示"回到底部"按钮
+const aiAutoFollow = ref(true)
+const aiShowScrollBtn = ref(false)
+
+function onAiScroll() {
+  const el = aiMessagesRef.value
+  if (!el) return
+  const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+  aiAutoFollow.value = dist < 80
+  aiShowScrollBtn.value = !aiAutoFollow.value
+}
+function scrollAiToBottomForce() {
+  aiAutoFollow.value = true
+  aiShowScrollBtn.value = false
+  nextTick(() => {
+    if (aiMessagesRef.value) aiMessagesRef.value.scrollTo({ top: aiMessagesRef.value.scrollHeight, behavior: 'smooth' })
+  })
+}
 const quickQuestions = ['分析本月利润表现', '提示税务风险', '生成经营摘要', '检查发票异常', '预测现金流压力', '给出节税建议', '总结费用波动', '生成经营简报']
 const rollingQuestions = computed(() => [...quickQuestions, ...quickQuestions])
 const sidebarWidth = computed(() => (sidebarCollapsed.value ? '72px' : '248px'))
@@ -201,6 +245,7 @@ function openAiDrawer(seedQuestion = '') {
   }
 }
 function scrollAiToBottom() {
+  if (!aiAutoFollow.value) return
   nextTick(() => {
     if (aiMessagesRef.value) aiMessagesRef.value.scrollTop = aiMessagesRef.value.scrollHeight
   })
@@ -209,27 +254,74 @@ function sendQuick(question) {
   aiInput.value = question
   sendAiMessage()
 }
+function finalizeAiInterrupted() {
+  const last = aiMessages.value[aiMessages.value.length - 1]
+  if (last && last.role === 'assistant' && last.streaming) {
+    last.streaming = false
+    last.thinking = false
+    last.stopped = true
+    if (!last.content) last.content = '（已停止生成）'
+    last.html = renderMarkdown(last.content)
+  }
+  aiLoading.value = false
+  aiAbortController.value = null
+  scrollAiToBottom()
+}
+
+/** 中断当前正在生成的回复 */
+function stopAiGeneration() {
+  if (aiAbortController.value) aiAbortController.value.abort()
+  finalizeAiInterrupted()
+}
+
+/** 输入行右侧的主按钮：未在生成时是发送键，生成中变为方形停止键（与 DeepSeek/ChatGLM 一致） */
+function onSendToggle() {
+  if (aiLoading.value) {
+    stopAiGeneration()
+    return
+  }
+  sendAiMessage()
+}
+
 function sendAiMessage() {
   const message = aiInput.value.trim()
+  // 生成中回车不发送（与主流 agent 一致）；中断请点击方形停止键
   if (!message || aiLoading.value) return
+  aiAutoFollow.value = true
+  aiShowScrollBtn.value = false
   aiInput.value = ''
   aiMessages.value.push({ role: 'user', content: message })
-  aiMessages.value.push({ role: 'assistant', content: '', html: '' })
+  aiMessages.value.push({ role: 'assistant', content: '', html: '', streaming: true, thinking: true, thinkingText: '' })
   const idx = aiMessages.value.length - 1
   aiLoading.value = true
   scrollAiToBottom()
-  streamChat(aiSessionId.value, message, {
+  aiAbortController.value = streamChat(aiSessionId.value, message, {
     onSession(sessionId) {
       aiSessionId.value = sessionId
       localStorage.setItem('chat_session', sessionId)
     },
+    onTool(label) {
+      // 工具调用阶段的实时进度:思考气泡显示"正在xx…",完成后保留"已查询: xx、xx"记录
+      const msg = aiMessages.value[idx]
+      if (!msg) return
+      msg.toolSteps = [...(msg.toolSteps || []), label]
+      msg.thinkingText = '正在' + label + '…'
+      scrollAiToBottom()
+    },
     onToken(token) {
       const msg = aiMessages.value[idx]
+      if (msg.thinking) msg.thinking = false
       msg.content += token
       msg.html = renderMarkdown(msg.content)
       scrollAiToBottom()
     },
-    onDone() { aiLoading.value = false },
+    onDone() {
+      const msg = aiMessages.value[idx]
+      msg.streaming = false
+      msg.thinking = false
+      aiLoading.value = false
+      aiAbortController.value = null
+    },
     onError(error) {
       const safe = /SocketException|ConnectException|refused|timeout|reset/i.test(error)
         ? '助手暂时不可用，请稍后再试'
@@ -237,7 +329,10 @@ function sendAiMessage() {
       const msg = aiMessages.value[idx]
       msg.content = msg.content || safe
       msg.html = renderMarkdown(msg.content)
+      msg.streaming = false
+      msg.thinking = false
       aiLoading.value = false
+      aiAbortController.value = null
       scrollAiToBottom()
     }
   })
@@ -443,7 +538,11 @@ html.theme-dark .el-popper.is-light .el-popper__arrow::before {
 .ai-title-block span { font-size: 24px; font-weight: 800; }
 .ai-title-block p { margin-top: 8px; color: rgba(232,241,255,.76); font-size: 14px; line-height: 1.6; }
 .ai-close { align-self: start; color: #fff !important; }
-.ai-messages { overflow: auto; padding: 20px 24px; }
+.ai-messages-wrap { position: relative; display: grid; min-height: 0; }
+.ai-messages { overflow: auto; height: 100%; padding: 20px 24px; }
+.scroll-bottom-btn { position: absolute; right: 16px; bottom: 14px; z-index: 6; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid rgba(38,54,78,.14); border-radius: 50%; color: #26364f; background: rgba(255,255,255,.95); box-shadow: 0 8px 22px rgba(17,32,50,.18); cursor: pointer; transition: transform .15s ease, color .2s ease; }
+.scroll-bottom-btn:hover { transform: translateY(-2px); color: #1a6b68; }
+.theme-dark .scroll-bottom-btn { border-color: var(--fiva-dark-line); color: var(--fiva-dark-text); background: rgba(27,39,64,.95); }
 .ai-empty { display: grid; gap: 14px; color: #53627a; overflow: hidden; }
 .ai-empty strong { color: #172033; font-size: 15px; }
 .ai-question-marquee { position: relative; overflow: hidden; padding: 2px 0 10px; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
@@ -453,28 +552,79 @@ html.theme-dark .el-popper.is-light .el-popper__arrow::before {
 .ai-empty button { flex: 0 0 auto; min-width: 168px; min-height: 54px; padding: 12px 16px; border: 1px solid rgba(26,107,104,.16); border-radius: 999px; color: #145754; text-align: left; font-weight: 680; background: linear-gradient(135deg, #fff, #edf8f6); box-shadow: 0 10px 24px rgba(17,32,50,.07); cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
 .ai-empty button:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 16px 32px rgba(26,107,104,.16); }
 .theme-dark .ai-empty button { border-color: var(--fiva-dark-line); color: #dffcf3; background: rgba(255,255,255,.07); }
-.ai-message { display: flex; margin-bottom: 12px; }
+.ai-message { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 12px; }
 .ai-message.user { justify-content: flex-end; }
-.ai-bubble { max-width: 78%; padding: 12px 14px; border-radius: 10px; color: #26364f; line-height: 1.75; white-space: pre-wrap; background: #fff; box-shadow: 0 8px 22px rgba(17,32,50,.06); }
-.ai-bubble.md-content { white-space: normal; }
-.ai-bubble.md-content h1, .ai-bubble.md-content h2, .ai-bubble.md-content h3 { margin: 12px 0 6px; font-size: 15px; font-weight: 600; }
-.ai-bubble.md-content h1 { font-size: 17px; }
-.ai-bubble.md-content h3 { font-size: 14px; }
-.ai-bubble.md-content p { margin: 4px 0; }
-.ai-bubble.md-content ul, .ai-bubble.md-content ol { padding-left: 20px; margin: 6px 0; }
-.ai-bubble.md-content table { border-collapse: collapse; margin: 8px 0; width: 100%; }
-.ai-bubble.md-content th, .ai-bubble.md-content td { border: 1px solid rgba(0,0,0,.12); padding: 6px 10px; text-align: left; font-size: 13px; }
-.ai-bubble.md-content th { background: rgba(26,107,104,.08); font-weight: 600; }
-.ai-bubble.md-content code { background: rgba(0,0,0,.06); padding: 2px 5px; border-radius: 3px; font-size: 13px; }
-.ai-bubble.md-content pre { background: #1e293b; color: #e2e8f0; padding: 10px 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
-.ai-bubble.md-content pre code { background: none; padding: 0; color: inherit; }
-.ai-bubble.md-content blockquote { border-left: 3px solid #1a6b68; padding-left: 10px; margin: 6px 0; color: #555; }
+.ai-bubble { max-width: 76%; padding: 10px 14px; border-radius: 14px; color: #fff; line-height: 1.7; white-space: pre-wrap; background: linear-gradient(135deg, #1a6b68, #209477); }
+.assistant-text { flex: 1; min-width: 0; padding: 2px 4px; }
+/* 抽屉内正文排版:与智能助手页同一套规则(助手消息平铺,用户消息气泡) */
+.ai-messages .md-content { color: #26364f; font-size: 14.5px; line-height: 1.8; word-break: break-word; }
+.ai-messages .md-content > *:first-child { margin-top: 0; }
+.ai-messages .md-content > *:last-child { margin-bottom: 0; }
+.ai-messages .md-content p { margin: 8px 0; }
+.ai-messages .md-content strong { color: inherit; font-weight: 700; }
+.ai-messages .md-content h1, .ai-messages .md-content h2, .ai-messages .md-content h3, .ai-messages .md-content h4 { margin: 18px 0 8px; color: #172033; font-weight: 700; line-height: 1.45; }
+.ai-messages .md-content h1 { font-size: 18px; }
+.ai-messages .md-content h2 { font-size: 16.5px; }
+.ai-messages .md-content h3 { font-size: 15px; }
+.ai-messages .md-content h4 { font-size: 14.5px; }
+.ai-messages .md-content ul, .ai-messages .md-content ol { margin: 8px 0; padding-left: 24px; }
+.ai-messages .md-content li { margin: 5px 0; }
+.ai-messages .md-content li::marker { color: #7c9a97; font-weight: 600; }
+.ai-messages .md-content code { background: rgba(26,107,104,.09); padding: 2px 6px; border-radius: 5px; font-size: .88em; font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace; color: #145754; }
+.ai-messages .md-content pre { background: #101828; color: #dbe5f1; padding: 14px 16px; border-radius: 10px; overflow-x: auto; margin: 10px 0; line-height: 1.65; }
+.ai-messages .md-content pre code { background: none; padding: 0; color: inherit; font-size: 13px; }
+.ai-messages .md-content table { width: 100%; margin: 12px 0; font-size: 13.5px; line-height: 1.6; border-collapse: separate; border-spacing: 0; border: 1px solid rgba(38,54,78,.14); border-radius: 10px; overflow: hidden; }
+.ai-messages .md-content th { background: rgba(26,107,104,.08); color: #172033; font-weight: 700; text-align: left; padding: 9px 14px; border-bottom: 1px solid rgba(38,54,78,.16); }
+.ai-messages .md-content td { padding: 9px 14px; border-bottom: 1px solid rgba(38,54,78,.08); }
+.ai-messages .md-content th:first-child { border-top-left-radius: 9px; }
+.ai-messages .md-content th:last-child { border-top-right-radius: 9px; }
+.ai-messages .md-content tbody tr:last-child td { border-bottom: none; }
+.ai-messages .md-content tbody tr:last-child td:first-child { border-bottom-left-radius: 9px; }
+.ai-messages .md-content tbody tr:last-child td:last-child { border-bottom-right-radius: 9px; }
+.ai-messages .md-content blockquote { margin: 10px 0; padding: 9px 14px; border-left: 3px solid #1a6b68; background: rgba(26,107,104,.06); border-radius: 0 8px 8px 0; color: #53627a; }
+.ai-messages .md-content blockquote p { margin: 4px 0; }
+.ai-messages .md-content hr { border: none; height: 1px; background: rgba(38,54,78,.12); margin: 16px 0; }
 .ai-message.user .ai-bubble { color: #fff; background: linear-gradient(135deg, #1a6b68, #209477); }
-.theme-dark .ai-bubble { color: var(--fiva-dark-text); background: rgba(255,255,255,.08); }
 .theme-dark .ai-message.user .ai-bubble { color: #fff; background: linear-gradient(135deg, #1a6b68, #209477); }
-.ai-input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 16px; border-top: 1px solid rgba(38,54,78,.08); background: rgba(255,255,255,.92); }
+.theme-dark .ai-messages .md-content { color: var(--fiva-dark-text); }
+.theme-dark .ai-messages .md-content h1, .theme-dark .ai-messages .md-content h2, .theme-dark .ai-messages .md-content h3, .theme-dark .ai-messages .md-content h4 { color: var(--fiva-dark-text); }
+.theme-dark .ai-messages .md-content code { background: rgba(120,240,194,.10); color: #9be8cf; }
+.theme-dark .ai-messages .md-content pre { background: #0b1120; }
+.theme-dark .ai-messages .md-content table { border-color: var(--fiva-dark-line); }
+.theme-dark .ai-messages .md-content th { background: rgba(26,107,104,.18); color: var(--fiva-dark-text); border-bottom-color: var(--fiva-dark-line); }
+.theme-dark .ai-messages .md-content td { border-bottom-color: var(--fiva-dark-line); }
+.theme-dark .ai-messages .md-content blockquote { background: rgba(26,107,104,.10); color: var(--fiva-dark-muted); }
+.theme-dark .ai-messages .md-content hr { background: var(--fiva-dark-line); }
+.theme-dark .thinking-bubble { color: var(--fiva-dark-muted); }
+.typing-cursor { flex-shrink: 0; width: 2px; height: 18px; background: #1a6b68; animation: aiCursorBlink 1s infinite; }
+.thinking-bubble { display: inline-flex; align-items: center; gap: 9px; padding: 6px 2px; color: #718096; }
+.thinking-dots { display: inline-flex; gap: 4px; }
+.thinking-dots i { width: 7px; height: 7px; border-radius: 50%; background: #209477; animation: thinkingBounce 1.2s ease-in-out infinite; }
+.thinking-dots i:nth-child(2) { background: #1a6b68; animation-delay: .15s; }
+.thinking-dots i:nth-child(3) { background: #2b5f8a; animation-delay: .3s; }
+.thinking-text { font-size: 13px; letter-spacing: .5px; }
+.stopped-tag { flex-shrink: 0; margin-bottom: 4px; padding: 2px 8px; border: 1px solid rgba(38,54,78,.16); border-radius: 999px; color: #718096; font-size: 11px; }
+.tool-status-line { display: inline-flex; align-items: center; gap: 8px; margin: 6px 0 0 4px; color: #718096; font-size: 12.5px; }
+.tool-status-line .thinking-dots i { width: 5px; height: 5px; }
+.theme-dark .tool-status-line { color: var(--fiva-dark-muted); }
+.theme-dark .thinking-bubble { color: var(--fiva-dark-muted); }
+.theme-dark .stopped-tag { border-color: var(--fiva-dark-line); color: var(--fiva-dark-muted); }
+.ai-input-row { display: flex; gap: 10px; align-items: center; padding: 16px; border-top: 1px solid rgba(38,54,78,.08); background: rgba(255,255,255,.92); }
+.ai-input-row .el-input { flex: 1; }
+.ai-input-row .el-button { flex-shrink: 0; }
+.send-toggle { flex-shrink: 0; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: none; border-radius: 50%; cursor: pointer; color: #fff; background: linear-gradient(135deg, #1a6b68, #209477); opacity: .45; transition: opacity .18s ease, transform .15s ease, background .2s ease, box-shadow .18s ease; }
+.send-toggle:hover { transform: scale(1.07); }
+.send-toggle.is-active { opacity: 1; box-shadow: 0 8px 20px rgba(26,107,104,.30); }
+.send-toggle.is-stop { opacity: 1; background: #172033; }
+.send-toggle.is-stop:hover { background: #22314d; }
+.stop-square { width: 12px; height: 12px; border-radius: 2.5px; background: #fff; pointer-events: none; }
+.send-toggle svg { pointer-events: none; }
+.theme-dark .send-toggle.is-stop { background: #22314d; }
+.theme-dark .send-toggle.is-stop:hover { background: #2b3c5c; }
 .theme-dark .ai-input-row { border-top-color: var(--fiva-dark-line); background: rgba(15,23,38,.92); }
 @keyframes aiSpin { to { transform: rotate(360deg); } }
+@keyframes aiCursorBlink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+@keyframes thinkingBounce { 0%, 80%, 100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-5px); opacity: 1; } }
 @keyframes aiPulse { 0%,100% { opacity: .55; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes aiFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @keyframes aiDialogIn { from { opacity: 0; transform: translateY(12px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
